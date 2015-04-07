@@ -1,5 +1,7 @@
 # Goddard Node Agent
 
+## About
+
 The "agent" is a collection of scripts that are built to be run once off by cron jobs that are configured on the node.
 
 There are a few "actions" that the agent performs:
@@ -65,3 +67,19 @@ A current example of the payload:
 
 }
 ````
+
+## Install / Develop
+
+To install or start developing. The project must be cloned from the repo and
+
+````bash
+npm install
+````
+
+must be run to setup all the configured packages. After this the project will be ready to be run by executing:
+
+````bash
+node index.js --action (configure|metrics)
+````
+
+Changing the action where required according to which function should be run.
