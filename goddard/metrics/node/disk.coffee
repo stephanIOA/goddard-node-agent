@@ -16,9 +16,6 @@ module.exports = exports = (params, fn) ->
 			# ask for details on the first drive then
 			df.driveDetail drives[0], (err, data) ->
 
-				console.dir err
-				console.dir data
-
 				# check for a error
 				if err
 					fn(err)

@@ -79,7 +79,7 @@ npm install
 must be run to setup all the configured packages. After this the project will be ready to be run by executing:
 
 ````bash
-node index.js --action (configure|metrics)
+node index.js --server http://6fcf9014.ngrok.com --action (configure|metrics)
 ````
 
 Changing the action where required according to which function should be run.

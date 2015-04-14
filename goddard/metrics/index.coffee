@@ -6,6 +6,7 @@ module.exports = exports = (params, fn) ->
 	# load in the required modules
 	async = require('async')
 	_ = require('underscore')
+	request = require('request')
 
 	# builds the default payload
 	payload = {
@@ -47,5 +48,24 @@ module.exports = exports = (params, fn) ->
 	# execute each of them the function and collect the result.
 	async.each metricHandlers, handleCollection, (err) ->
 
-		# handle each
-		fn(err, payload)
+		# awesome no send out the metrics to the endpoint
+		server_host_url = params.server or 'http://6fcf9014.ngrok.com'
+
+		# create the metric endpoint
+		metric_endpoint_url_str = server_host_url + '/metric.json'
+
+		# send it out
+		request {
+
+			url: metric_endpoint_url_str,
+			method: 'POST',
+			json: true,
+			headers: {
+				"content-type": "application/json"
+			},
+			body: JSON.stringify(payload)
+
+		}, (err, response, body) -> 
+
+			# handle each
+			fn(err, payload)
