@@ -27,12 +27,16 @@ module.exports = exports = (params, fn) ->
 					# return in details
 					fn(null, {
 
-						disk: {
+						node: {
 
-							total: Math.round( total_diskspace / 10 ) * 10 ,
-							free: Math.round( free_diskspace / 10 ) * 10,
-							raid: [ 'ACTIVE', 'ACTIVE' ]
+							disk: {
 
+								total: Math.round( total_diskspace / 10 ) * 10 ,
+								free: Math.round( free_diskspace / 10 ) * 10,
+								raid: [ 'ACTIVE', 'ACTIVE' ]
+
+							}
+							
 						}
 
 					})

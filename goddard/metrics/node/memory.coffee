@@ -9,11 +9,15 @@ module.exports = exports = (params, fn) ->
 	# returns !
 	fn null, {
 
-		memory: {
+		node: {
 
-			total: os.totalmem(),
-			free: os.freemem()
+			memory: {
 
+				total: os.totalmem(),
+				free: os.freemem()
+
+			}
+			
 		}
 
 	}

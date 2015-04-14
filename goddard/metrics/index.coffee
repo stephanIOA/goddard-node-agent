@@ -5,7 +5,7 @@ module.exports = exports = (params, fn) ->
 
 	# load in the required modules
 	async = require('async')
-	_ = require('underscore')
+	_ = require('lodash')
 	request = require('request')
 
 	# builds the default payload
@@ -14,7 +14,7 @@ module.exports = exports = (params, fn) ->
 		node: {},
 		wireless: {},
 		router: {},
-		relay: {},
+		relays: [],
 		bgan: {},
 		nodeid: params.uid,
 		timestamp: new Date().getTime()
@@ -38,7 +38,7 @@ module.exports = exports = (params, fn) ->
 
 			# if we got no error
 			if not err
-				payload = _.extend(payload, output)
+				payload = _.merge(payload, output)
 
 			# return with the error if any
 			cb(err)
@@ -59,11 +59,10 @@ module.exports = exports = (params, fn) ->
 
 			url: metric_endpoint_url_str,
 			method: 'POST',
-			json: true,
 			headers: {
 				"content-type": "application/json"
 			},
-			body: JSON.stringify(payload)
+			json: payload
 
 		}, (err, response, body) -> 
 

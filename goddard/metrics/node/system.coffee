@@ -9,8 +9,12 @@ module.exports = exports = (params, fn) ->
 	# returns !
 	fn null, {
 
-		cpus: os.cpus().length,
-		load: os.loadavg().join(' '),
-		uptime: os.uptime()
+		node: {
+
+			cpus: os.cpus().length,
+			load: os.loadavg().join(' '),
+			uptime: os.uptime()
+			
+		}
 
 	}
