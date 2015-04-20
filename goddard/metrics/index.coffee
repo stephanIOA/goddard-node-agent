@@ -24,9 +24,10 @@ module.exports = exports = (params, fn) ->
 	# the array of enabled metrics
 	metricHandlers = [
 
-		require('./node/system.coffee'),
-		require('./node/disk.coffee'),
-		require('./node/memory.coffee')
+		require('./node/system'),
+		require('./node/disk'),
+		require('./node/memory'),
+		require('./bgan')
 
 	]
 
