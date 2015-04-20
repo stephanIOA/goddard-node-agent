@@ -27,7 +27,10 @@ module.exports = exports = (params, fn) ->
 		require('./node/system'),
 		require('./node/disk'),
 		require('./node/memory'),
-		require('./bgan')
+		require('./bgan'),
+		require('./router/hosts'),
+		require('./wireless/hosts'),
+		require('./relay')
 
 	]
 
@@ -60,6 +63,7 @@ module.exports = exports = (params, fn) ->
 
 			url: metric_endpoint_url_str,
 			method: 'POST',
+			timeout: 5000,
 			headers: {
 				"content-type": "application/json"
 			},

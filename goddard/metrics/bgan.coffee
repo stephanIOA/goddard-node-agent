@@ -23,7 +23,7 @@ module.exports = exports = (params, fn) ->
 					output_obj = {}
 
 					# add each if it exists
-					output_obj.faults = parsed_obj.faults or 1
+					output_obj.faults = parsed_obj.faults or 0
 					if parsed_obj.gps
 						output_obj.lat = parsed_obj.gps.lat or null
 						output_obj.lng = parsed_obj.gps.lng or null
