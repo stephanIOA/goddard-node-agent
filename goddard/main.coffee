@@ -12,23 +12,29 @@ argv = require('minimist')(process.argv.slice(2))
 # check for the type
 if argv.action
 
+	# generate the params
+	runParams = {
+		uid: '1'
+	}
+
 	# check if we know it ?
 	if argv.action == 'metrics'
 		# get the metric function
 		metricsRun = require('./metrics')
 
 		# run and get our details
-		metricsRun({
-
-			uid: '1'
-
-		}, (err, payload) ->
+		metricsRun(runParams, (err, payload) ->
 
 			console.dir payload
 
 		)
 	else if argv.action == 'configure'
-		console.log 'configure here'
+		# get the config function
+		configRun = require('./config')
+		# get it going
+		configRun(runParams, (err) -> 
+			console.log 'done'
+		)
 	else
 		console.log 'Unknown --action flag.'
 
