@@ -7,7 +7,7 @@ module.exports = exports = (params, fn) ->
 	bgan = require('hughes-bgan');
 	bgan.metrics {
 
-			host: '192.168.128.100',
+			host: params.bgan.ip,
 			port: 1829
 
 		}, (err, res) ->
@@ -26,7 +26,7 @@ module.exports = exports = (params, fn) ->
 					output_obj.faults = parsed_obj.faults or 0
 					if parsed_obj.gps
 						output_obj.lat = parsed_obj.gps.lat or null
-						output_obj.lng = parsed_obj.gps.lng or null
+						output_obj.lng = parsed_obj.gps.lon or null
 						output_obj.status = parsed_obj.gps.status or null
 
 					output_obj.ethernet = parsed_obj.ethernet == 1

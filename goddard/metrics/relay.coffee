@@ -9,7 +9,7 @@ module.exports = exports = (params, fn) ->
 	_ = require('underscore')
 
 	# get the entire state of the relay
-	webrelay.state '192.168.1.2', (err, res) ->
+	webrelay.state params.config.relay.ip, (err, res) ->
 
 		# check for a error
 		if err
@@ -17,6 +17,7 @@ module.exports = exports = (params, fn) ->
 		else
 			# parse out the XML response from the relay
 			parseString res, (err, parsed_result_obj) ->
+				
 				# check for a error
 				if err
 					fn(err, {})
