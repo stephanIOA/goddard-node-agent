@@ -14,7 +14,7 @@ module.exports = exports = (params, fn) ->
 		# right so if we got here this was probably from boot
 		# ping the main router and configure it
 		mikroApi = require('mikronode')
-		connection = new mikroApi(params.consants.mikrotik.ip.wireless,params.consants.mikrotik.username,params.consants.mikrotik.password)
+		connection = new mikroApi(params.constants.mikrotik.ip.wireless,params.constants.mikrotik.username,params.constants.mikrotik.password)
 
 		# done !
 		connection.connect (conn) ->

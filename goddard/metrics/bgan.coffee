@@ -7,7 +7,7 @@ module.exports = exports = (params, fn) ->
 	bgan = require('hughes-bgan');
 	bgan.metrics {
 
-			host: params.bgan.ip,
+			host: params.constants.bgan.ip,
 			port: 1829
 
 		}, (err, res) ->
