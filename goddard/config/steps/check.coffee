@@ -27,7 +27,7 @@ module.exports = exports = (params, fn) ->
 			# create the request
 			r = request {
 
-					url: 'http://192.168.88.5',
+					url: 'http://' + params.constants.mikrotik.ip.router + '',
 					timeout: 2500
 
 				}, (err, response, body) ->
@@ -45,15 +45,12 @@ module.exports = exports = (params, fn) ->
 						console.log 'ROUTER - NOT CONFIGURED'
 					cb(null)
 
-			# handle a error
-			# r.on('error',cb)
-
 		, (cb) ->	
 
 			# create the request
 			r = request {
 
-					url: 'http://192.168.88.10',
+					url: 'http://' + params.constants.mikrotik.ip.wireless + '',
 					timeout: 2500
 
 				}, (err, response, body) ->
@@ -71,9 +68,6 @@ module.exports = exports = (params, fn) ->
 						console.log 'WIRELESS - NOT CONFIGURED'
 					console.log '========================='
 					cb(null)
-
-			# handle a error
-			# r.on('error',cb)
 
 	], =>
 
@@ -104,7 +98,7 @@ module.exports = exports = (params, fn) ->
 						# right so if we got here this was probably from boot
 						# ping the main router and configure it
 						mikroApi = require('mikronode')
-						connection = new mikroApi(ip_str,'admin','')
+						connection = new mikroApi(ip_str,'' + params.constants.mikrotik.username + '','')
 
 						# done !
 						connection.connect (conn) ->
@@ -131,7 +125,8 @@ module.exports = exports = (params, fn) ->
 									# done
 									doCallbackCall(null, type_str)
 					catch e
-						conn.close(true)
+						console.dir e
+						# conn.close(true)
 						doCallbackCall(e)
 
 				else
@@ -144,7 +139,7 @@ module.exports = exports = (params, fn) ->
 			retries = retries + 1
 
 			# gateway at default now
-			defaultGatewayStr = '192.168.88.1'
+			defaultGatewayStr = '' + params.constants.mikrotik.ip.default + ''
 
 			# get the type
 			getDeviceTypeRunningAtGateway defaultGatewayStr, (err, type_str) ->
@@ -154,7 +149,11 @@ module.exports = exports = (params, fn) ->
 
 					# check it
 					if deviceStatus.router == true and deviceStatus.wireless == true
-						console.log 'ALL GOOD THEN'
+
+						# debugging
+						console.log 'FINISHED CHECKING AND SETTING BOTH ROUTER AND WIRELESS'
+
+						# finish the loop
 						fn(null)
 					else
 						setTimeout(handleChoosingDevice, 1000)
@@ -210,7 +209,7 @@ module.exports = exports = (params, fn) ->
 				# right so if we got here this was probably from boot
 				# ping the main router and configure it
 				mikroApi = require('mikronode')
-				connection = new mikroApi(connect_to_str,'admin','')
+				connection = new mikroApi(connect_to_str,'' + params.constants.mikrotik.username + '','')
 				# connection.debug = 5
 
 				# done !
@@ -231,7 +230,7 @@ module.exports = exports = (params, fn) ->
 
 							# find the interface we are going to configure
 							interface_obj = _.find parsed, (interface_obj) ->
-								return ('' + interface_obj.address).toLowerCase() == '192.168.88.1/24'
+								return ('' + interface_obj.address).toLowerCase() == '' + params.constants.mikrotik.ip.default + '/24'
 
 							# close and move on
 							chan.close(true)
@@ -259,7 +258,7 @@ module.exports = exports = (params, fn) ->
 								chan.getConnection().on('error', handleClosingDone)
 
 								# configure the ip
-								chan.write [ '/user/set', '=.id=*1', '=password=rogerwilco' ], ->
+								chan.write [ '/user/set', '=.id=*1', '=password=' + params.constants.mikrotik.password ], ->
 									chan.on 'done', ->
 										# configure the ip
 										chan.write [ '/ip/address/set', '=.id=' + interface_obj['.id'], '=address=' + new_ip_str + '/24' ], ->
@@ -283,12 +282,13 @@ module.exports = exports = (params, fn) ->
 		configureRouter = (cb) =>
 
 			# debug
-			console.log 'Trying to configure Router'
+			console.log 'Trying to configure router'
 
 			# configure the ip
-			configureIPAddress('192.168.88.1', '192.168.88.5', (err) ->
+			configureIPAddress('' + params.constants.mikrotik.ip.default + '', '' + params.constants.mikrotik.ip.router + '', (err) ->
 
-				console.log 'router config done'
+				# debugging and enable
+				console.log 'Trying to configure router [DONE]'
 				deviceStatus.router = true
 
 				# done !
@@ -302,9 +302,10 @@ module.exports = exports = (params, fn) ->
 			console.log 'Trying to configure wireless'
 
 			# configure the ip
-			configureIPAddress('192.168.88.1', '192.168.88.10', (err) ->
+			configureIPAddress('' + params.constants.mikrotik.ip.default + '', '' + params.constants.mikrotik.ip.wireless + '', (err) ->
 
-				console.log 'wireless config done'
+				# debugging and enable
+				console.log 'Trying to configure wireless [DONE]'
 				deviceStatus.wireless = true
 
 				# done !

@@ -14,17 +14,21 @@ if argv.action
 
 	# generate the params
 	runParams = {
-		uid: '1'
+		uid: '1',
+		constants: require('./constants')
 	}
 
 	# check if we know it ?
 	if argv.action == 'metrics'
+
 		# get the metric function
 		metricsRun = require('./metrics')
 
 		# run and get our details
 		metricsRun(runParams, (err, payload) ->
 
+			# output when we are done
+			# with the payload coming out
 			console.dir payload
 
 		)

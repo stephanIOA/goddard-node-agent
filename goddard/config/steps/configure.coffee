@@ -15,16 +15,14 @@ module.exports = exports = (params, fn) ->
 	handleConfigApplication = (key_str, cb) ->
 
 		# the ip to use based on type
-		address_ip_str = '192.168.88.105'
+		address_ip_str = params.constants.mikrotik.ip.default
 
 		# check the type
-		if key_str == 'router'
-			address_ip_str = '192.168.88.5'
-		else if key_str == 'wireless'
-			address_ip_str = '192.168.88.10'
+		if params.constants.mikrotik.ip[ key_str ]
+			address_ip_str = params.constants.mikrotik.ip[ key_str ]
 		
 		# debugging
-		console.log 'connecting to ' + address_ip_str + ' with ' + key_str + '.rsc'
+		console.log 'connecting to ' + address_ip_str + ' with ' + key_str + '.rsc that has the preloaded config'
 
 		# connect using ftp
 		Client = require('ftp')
@@ -35,12 +33,14 @@ module.exports = exports = (params, fn) ->
 				if err
 					cb(err)
 				else
+					# debug
+					console.log 'running the import command'
 					# close it
 					c.end()
 					# right so if we got here this was probably from boot
 					# ping the main router and configure it
 					mikroApi = require('mikronode')
-					connection = new mikroApi(address_ip_str,'admin','rogerwilco')
+					connection = new mikroApi(address_ip_str,params.constants.mikrotik.username,params.constants.mikrotik.password)
 
 					# done !
 					connection.connect (conn) ->
@@ -51,6 +51,13 @@ module.exports = exports = (params, fn) ->
 						# get the ip
 						chan.write [ '/import file-name=config.rsc' ], ->
 							chan.on 'done', (data) ->
+
+								# parse the response we got back
+								parsed = mikroApi.parseItems(data)
+
+								# display the output
+								console.log 'output from config import'
+								console.dir(parsed)
 
 								# close the connection
 								chan.close(true)
@@ -70,8 +77,8 @@ module.exports = exports = (params, fn) ->
 		c.connect({
 
 			host: address_ip_str,
-			user: 'admin',
-			password: 'rogerwilco'
+			user: params.constants.mikrotik.username,
+			password: params.constants.mikrotik.password
 
 		})
 

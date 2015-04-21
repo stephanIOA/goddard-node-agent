@@ -30,7 +30,7 @@ module.exports = exports = (params, fn) ->
 		require('./bgan'),
 		require('./router/hosts'),
 		require('./wireless/hosts'),
-		require('./relay')
+		# require('./relay')
 
 	]
 
@@ -52,6 +52,9 @@ module.exports = exports = (params, fn) ->
 	# execute each of them the function and collect the result.
 	async.each metricHandlers, handleCollection, (err) ->
 
+		# timing
+		started = new Date().getTime()
+
 		# awesome no send out the metrics to the endpoint
 		server_host_url = params.server or 'http://6fcf9014.ngrok.com'
 
@@ -70,6 +73,12 @@ module.exports = exports = (params, fn) ->
 			json: payload
 
 		}, (err, response, body) -> 
+
+			# timing
+			ended = new Date().getTime()
+
+			# output info
+			console.log 'Update request to server callback took ' + (ended-started) + 'ms'
 
 			# handle each
 			fn(err, payload)
