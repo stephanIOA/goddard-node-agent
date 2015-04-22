@@ -100,8 +100,14 @@ module.exports = exports = (params, fn) ->
 						mikroApi = require('mikronode')
 						connection = new mikroApi(ip_str,'' + params.constants.mikrotik.username + '','')
 
+						# handle any errors to avoid the unthrown errors
+						connection.on 'error', (e) ->  doCallbackCall(e)
+
 						# done !
 						connection.connect (conn) ->
+
+							# get the error if any
+							conn.on 'error', (e) ->  doCallbackCall(e)
 
 							# open the channel
 							chan = conn.openChannel()

@@ -12,7 +12,7 @@ module.exports = exports = (params, fn) ->
 
 		}, (err, res) ->
 			if err
-				fn(err, {})
+				fn(err)
 			else
 				# check if good
 				parsed_obj = JSON.parse(res)
