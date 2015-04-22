@@ -6,6 +6,9 @@
 # hub
 ###
 
+# modules
+fs = require('fs')
+
 # parse the parameters
 argv = require('minimist')(process.argv.slice(2))
 
@@ -27,9 +30,19 @@ if argv.action
 		# run and get our details
 		metricsRun(runParams, (err, payload) ->
 
-			# output when we are done
-			# with the payload coming out
-			console.dir payload
+			# write to file if save is enabled
+			if argv.save
+				# done
+				fs.writeFile '/var/goddard/status.json', JSON.stringify(payload), (err) ->
+
+					# output when we are done
+					# with the payload coming out
+					console.dir payload
+
+			else
+				# output when we are done
+				# with the payload coming out
+				console.dir payload
 
 		)
 	else if argv.action == 'configure'
