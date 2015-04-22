@@ -9,7 +9,7 @@ module.exports = exports = (params, fn) ->
 	_ = require('underscore')
 
 	# get the entire state of the relay
-	webrelay.state params.config.relay.ip, (err, res) ->
+	webrelay.state params.constants.relay.ip, (err, res) ->
 
 		# check for a error
 		if err

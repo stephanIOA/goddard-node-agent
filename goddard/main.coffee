@@ -18,7 +18,8 @@ if argv.action
 	# generate the params
 	runParams = {
 		uid: '1',
-		constants: require('./constants')
+		constants: require('./constants'),
+		argv: argv
 	}
 
 	# check if we know it ?
@@ -30,19 +31,12 @@ if argv.action
 		# run and get our details
 		metricsRun(runParams, (err, payload) ->
 
-			# write to file if save is enabled
-			if argv.save
-				# done
-				fs.writeFile '/var/goddard/status.json', JSON.stringify(payload), (err) ->
+			# output when we are done
+			# with the payload coming out
+			console.dir payload
 
-					# output when we are done
-					# with the payload coming out
-					console.dir payload
-
-			else
-				# output when we are done
-				# with the payload coming out
-				console.dir payload
+			# ensure exit
+			process.exit(0)
 
 		)
 	else if argv.action == 'configure'
@@ -50,7 +44,12 @@ if argv.action
 		configRun = require('./config')
 		# get it going
 		configRun(runParams, (err) -> 
+
+			# debugging
 			console.log 'done'
+
+			# ensure exit
+			process.exit(0)
 		)
 	else
 		console.log 'Unknown --action flag.'
