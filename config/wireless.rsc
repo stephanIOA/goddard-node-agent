@@ -5,8 +5,8 @@
 add l2mtu=1600 name=bridge1
 /interface wireless
 set [ find default-name=wlan1 ] band=2ghz-b/g/n channel-width=\
-    20/40mhz-ht-above disabled=no frequency=5180 l2mtu=2290 mode=ap-bridge \
-    ssid=UKSA
+    20/40mhz-ht-above disabled=no frequency=2412 l2mtu=2290 mode=ap-bridge \
+    name=wlan1-gateway ssid=UKSA
 /interface bridge port
 add bridge=bridge1 interface=ether1
 add bridge=bridge1 interface=wlan1

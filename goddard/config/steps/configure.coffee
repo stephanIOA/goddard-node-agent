@@ -9,6 +9,7 @@ module.exports = exports = (params, fn) ->
 	request = require('request')
 	ping = require('ping')
 	fs = require('fs')
+	S = require('string')
 	readline = require('readline')
 
 	# handle reading in the actual config files
@@ -24,60 +25,116 @@ module.exports = exports = (params, fn) ->
 		# debugging
 		console.log 'connecting to ' + address_ip_str + ' with ' + key_str + '.rsc that has the preloaded config'
 
-		# connect using ftp
-		Client = require('ftp')
-		c = new Client()
-		c.on 'ready', ->
-			c.put './config/' + key_str + '.rsc', 'config.rsc', (err) ->
-				# check for a error
-				if err
-					cb(err)
+		
+		# debug
+		console.log 'running the import command'
+
+		# right so if we got here this was probably from boot
+		# ping the main router and configure it
+		mikroApi = require('mikronode')
+		connection = new mikroApi(address_ip_str,params.constants.mikrotik.username,params.constants.mikrotik.password)
+
+		# done !
+		connection.connect (conn) ->
+
+			# required module
+			readline = require('readline')
+
+			# commands
+			command_strs = []
+
+			# configure to read the file and how
+			rl = readline.createInterface({
+
+				input : fs.createReadStream('./config/' + key_str + '.rsc'),
+				output: process.stdout,
+				terminal: false
+
+			})
+
+			# current command
+			command_prefix_str = ''
+			current_line_str = ''
+			prefixes = []
+
+			# run each of the lines
+			rl.on 'line',(line) ->
+
+				# assign prefix
+				if S(line).startsWith('/')
+					command_prefix_str = line
 				else
-					# debug
-					console.log 'running the import command'
-					# close it
-					c.end()
-					# right so if we got here this was probably from boot
-					# ping the main router and configure it
-					mikroApi = require('mikronode')
-					connection = new mikroApi(address_ip_str,params.constants.mikrotik.username,params.constants.mikrotik.password)
+					# check the line
+					if S(line).endsWith('\\')
+						current_line_str = current_line_str + line + '\n'
+					else
+						current_line_str = current_line_str + line 
+						# console.log current_line_str
+						command_strs.push(command_prefix_str + ' ' + current_line_str)
+						current_line_str = ''
 
-					# done !
-					connection.connect (conn) ->
+			# when done
+			rl.on 'close', ->
 
-						# open the channel
-						chan = conn.openChannel()
+				# run the command
+				handleRunningCommand = (command_str, callbackItem) ->
 
-						# get the ip
-						chan.write [ '/import', '=file-name=config.rsc' ], ->
-							chan.on 'done', (data) ->
+					# debugging
+					fs.writeFile './line.rsc', command_str, ->
 
-								# display the output
-								console.log 'output from config import'
-								console.log data
+						# connect using ftp
+						Client = require('ftp')
+						c = new Client()
+						c.on 'ready', ->
+							c.put './line.rsc', 'line.rsc', (err) ->
+								# check for a error
+								if err
+									callbackItem(err)
+								else
+									# open the channel
+									chan = conn.openChannel()
 
-								# close the connection
-								chan.close(true)
-								conn.close(true)
+									# get the ip
+									chan.write [ '/import', '=file-name=line.rsc' ], ->
+										chan.on 'done', (data) ->
 
-								# output this
-								cb()
+											# did we get a response ?
+											if data[0][1]
 
-		# handle any errors thrown
-		c.on 'error', (err) ->
-			# debug
-			console.dir err
-			# throw back callback
-			cb(err)
+												# display the output
+												console.log command_str
+												console.log data[0][1]
 
-		# try to connect
-		c.connect({
+											# close the connection
+											chan.close(true)
 
-			host: address_ip_str,
-			user: params.constants.mikrotik.username,
-			password: params.constants.mikrotik.password
+											# done
+											callbackItem()
 
-		})
+						# handle any errors thrown
+						c.on 'error', (err) ->
+							# debug
+							console.dir err
+							# throw back callback
+							callbackItem()
+
+						# try to connect
+						c.connect({
+
+							host: address_ip_str,
+							user: params.constants.mikrotik.username,
+							password: params.constants.mikrotik.password
+
+						})
+
+				# awesome no send to server
+				async.eachSeries command_strs, handleRunningCommand, ->
+
+					# close the connection
+					conn.close(true)
+
+					# output this
+					cb()
 
 	# loop each of the configs
 	async.eachSeries [ 'wireless', 'router' ], handleConfigApplication, fn

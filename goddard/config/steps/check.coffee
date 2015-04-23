@@ -84,6 +84,8 @@ module.exports = exports = (params, fn) ->
 			# ping the device first
 			ping.sys.probe ip_str, (isAlive) ->
 
+				console.log ip_str
+
 				# run the callback
 				already_calledback = false
 				doCallbackCall = (err, type_str) ->
@@ -92,7 +94,7 @@ module.exports = exports = (params, fn) ->
 						already_calledback = true
 
 				# if it's there, just go for it
-				if isAlive == true
+				if isAlive == true or 1==1
 
 					try
 						# right so if we got here this was probably from boot
