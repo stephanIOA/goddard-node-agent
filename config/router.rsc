@@ -31,7 +31,7 @@ add address-pool=hs-pool-3 disabled=no interface=ether3-master-local name=\
 /ip address
 add address=192.168.88.5/24 comment="Local Network" interface=\
     ether2-master-local network=192.168.88.0
-add address=10.5.50.1/24 comment="hotspot network" interface=\
+add address=10.5.50.1/24 comment="Hotspot network" interface=\
     ether3-master-local network=10.5.50.0
 /ip dhcp-client
 add comment="default configuration" dhcp-options=hostname,clientid disabled=\
