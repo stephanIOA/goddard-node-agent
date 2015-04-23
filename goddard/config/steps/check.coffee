@@ -81,62 +81,67 @@ module.exports = exports = (params, fn) ->
 			# debugging
 			console.log 'pinging <' + ip_str + '> to see if something is still running there'
 
-			# ping the device first
-			ping.sys.probe ip_str, (isAlive) ->
+			# create the request
+			r = request {
 
-				# run the callback
-				already_calledback = false
-				doCallbackCall = (err, type_str) ->
-					if already_calledback == false
-						cb(err, type_str)
-						already_calledback = true
+					url: 'http://' + ip_str,
+					timeout: 2500
 
-				# if it's there, just go for it
-				if isAlive == true
+				}, (err, response, body) ->
 
-					try
-						# right so if we got here this was probably from boot
-						# ping the main router and configure it
-						mikroApi = require('mikronode')
-						connection = new mikroApi(ip_str,'' + params.constants.mikrotik.username + '','')
+					# run the callback
+					already_calledback = false
+					doCallbackCall = (err, type_str) ->
+						if already_calledback == false
+							cb(err, type_str)
+							already_calledback = true
 
-						# handle any errors to avoid the unthrown errors
-						connection.on 'error', (e) ->  doCallbackCall(e)
+					# if it's there, just go for it
+					if response and response.statusCode == 200
 
-						# done !
-						connection.connect (conn) ->
+						try
+							# right so if we got here this was probably from boot
+							# ping the main router and configure it
+							mikroApi = require('mikronode')
+							connection = new mikroApi(ip_str,'' + params.constants.mikrotik.username + '','')
 
-							# get the error if any
-							conn.on 'error', (e) ->  doCallbackCall(e)
+							# handle any errors to avoid the unthrown errors
+							connection.on 'error', (e) ->  doCallbackCall(e)
 
-							# open the channel
-							chan = conn.openChannel()
+							# done !
+							connection.connect (conn) ->
 
-							# get the ip
-							chan.write [ '/interface/print' ], ->
-								chan.on 'done', (data) ->
-									parsed = mikroApi.parseItems(data)
+								# get the error if any
+								conn.on 'error', (e) ->  doCallbackCall(e)
 
-									# get all the types
-									interface_types = _.pluck(parsed, 'type')
+								# open the channel
+								chan = conn.openChannel()
 
-									# get the type
-									type_str = if interface_types.indexOf('wlan') != -1 then 'wireless' else 'router'
+								# get the ip
+								chan.write [ '/interface/print' ], ->
+									chan.on 'done', (data) ->
+										parsed = mikroApi.parseItems(data)
 
-									# close the connection and channel
-									chan.close(true)
-									conn.close(true)
-									connection.close(true)
+										# get all the types
+										interface_types = _.pluck(parsed, 'type')
 
-									# done
-									doCallbackCall(null, type_str)
-					catch e
-						console.dir e
-						# conn.close(true)
-						doCallbackCall(e)
+										# get the type
+										type_str = if interface_types.indexOf('wlan') != -1 then 'wireless' else 'router'
 
-				else
-					doCallbackCall(new Error())
+										# close the connection and channel
+										chan.close(true)
+										conn.close(true)
+										connection.close(true)
+
+										# done
+										doCallbackCall(null, type_str)
+						catch e
+							console.dir e
+							# conn.close(true)
+							doCallbackCall(e)
+
+					else
+						doCallbackCall(new Error())
 
 		# try to get the router
 		handleChoosingDevice = ->
@@ -184,6 +189,11 @@ module.exports = exports = (params, fn) ->
 						# execute it
 						deviceFunc (err) =>
 
+							# callback
+							setTimeout(handleChoosingDevice, 1000)
+
+							"""
+
 							# give up ?
 							if retries <= max_retry
 
@@ -195,7 +205,13 @@ module.exports = exports = (params, fn) ->
 								process.exit(1)
 								fn(null)
 
+							"""
+
 					else
+						# callback
+						setTimeout(handleChoosingDevice, 1000)
+
+						"""
 						# give up ?
 						if retries <= max_retry
 
@@ -206,6 +222,7 @@ module.exports = exports = (params, fn) ->
 							console.log 'TIMEOUT'
 							process.exit(1)
 							fn(null)
+						"""
 
 		# changes the ip of a router sitting
 		# at target address to passed ip
