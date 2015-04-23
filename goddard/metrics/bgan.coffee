@@ -8,7 +8,8 @@ module.exports = exports = (params, fn) ->
 	bgan.metrics {
 
 			host: params.constants.bgan.ip,
-			port: 1829
+			port: 1829,
+			password: 'admin'
 
 		}, (err, res) ->
 			if err
@@ -16,6 +17,8 @@ module.exports = exports = (params, fn) ->
 			else
 				# check if good
 				parsed_obj = JSON.parse(res)
+
+				console.dir parsed_obj
 
 				# did it return
 				if parsed_obj

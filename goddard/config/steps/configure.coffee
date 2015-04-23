@@ -28,7 +28,7 @@ module.exports = exports = (params, fn) ->
 		Client = require('ftp')
 		c = new Client()
 		c.on 'ready', ->
-			c.put './config/' + key_str + '.config', 'config.rsc', (err) ->
+			c.put './config/' + key_str + '.rsc', 'config.rsc', (err) ->
 				# check for a error
 				if err
 					cb(err)
@@ -49,15 +49,12 @@ module.exports = exports = (params, fn) ->
 						chan = conn.openChannel()
 
 						# get the ip
-						chan.write [ '/import file-name=config.rsc' ], ->
+						chan.write [ '/import', '=file-name=config.rsc' ], ->
 							chan.on 'done', (data) ->
-
-								# parse the response we got back
-								parsed = mikroApi.parseItems(data)
 
 								# display the output
 								console.log 'output from config import'
-								console.dir(parsed)
+								console.log data
 
 								# close the connection
 								chan.close(true)
@@ -83,4 +80,4 @@ module.exports = exports = (params, fn) ->
 		})
 
 	# loop each of the configs
-	async.each [ 'router', 'wireless' ], handleConfigApplication, fn
+	async.eachSeries [ 'wireless', 'router' ], handleConfigApplication, fn
