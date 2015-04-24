@@ -30,6 +30,9 @@ add name=hs-pool-3 ranges=10.5.50.2-10.5.50.254
 /ip dhcp-server
 add address-pool=default-dhcp disabled=no interface=goddard-bridge \
     lease-time=10m name=default
+/ip dhcp-server
+set [ find name=default ] address-pool=default-dhcp disabled=no interface=goddard-bridge \
+    lease-time=10m
 add address-pool=hs-pool-3 disabled=no interface=uksa-vlan lease-time=1h \
     name=dhcp1
 /ip hotspot
