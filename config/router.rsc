@@ -6,7 +6,7 @@ add l2mtu=1598 name=goddard-bridge
 /interface ethernet
 set [ find default-name=ether1 ] comment=BGAN name=ether1-gateway
 set [ find default-name=ether2 ] comment=WebRelay name=ether2-master-local
-set [ find default-name=ether3 ] comment=HotSpot name=ether3-master-local
+set [ find default-name=ether3 ] comment=HotSpot name=ether3-master-local master-port=none
 set [ find default-name=ether4 ] comment=NUC master-port=ether2-master-local \
     name=ether4-slave-local
 set [ find default-name=ether5 ] comment=Support master-port=\
