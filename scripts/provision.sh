@@ -36,8 +36,7 @@ if [ ! -f ~/.ssh/id_rsa.pub ]
 echo "Checking if $target is alive"
 
 # ping it to make sure we can reach it
-#count=$( ping -c 3 $target | grep icmp* | wc -l )
-count=1
+count=$( ping -c 3 $target | grep icmp* | wc -l )
 if [ $count -gt 0 ]
 	
 	then
@@ -62,7 +61,7 @@ if [ $count -gt 0 ]
 		curl -d "{\"mac\": \"${mac}\", \"key\": \"${publickey}\"}" -H "Content-Type: application/json" -X POST http://$target/setup.json > /var/goddard/node.raw.json
 
 		# check if the returned json was valid
-		eval cat /var/goddard/node.raw.json | jq -r '.port'
+		eval cat /var/goddard/node.raw.json | jq -r '.'
 
 		# register the return code
 		ret_code=$?
@@ -72,6 +71,9 @@ if [ $count -gt 0 ]
 
 			# move the json to live node details
 			mv /var/goddard/node.raw.json /var/goddard/node.json
+
+			# remove the lock if any
+			rm /var/goddard/lock
 
 		else
 
@@ -94,44 +96,50 @@ if [ $count -gt 0 ]
 
 	fi
 
-# write the configured upstart service
-if [ ! -f /var/goddard/lock ]
-	then
+if [ -f /var/goddard/node.json ]
+then
 
-		# get the details to write out
-		tunnel_server=$(cat /var/goddard/node.json | jq -r '.server')
-		tunnel_port=$(cat /var/goddard/node.json | jq -r '.port.tunnel')
-		tunnel_monitor_port=$(cat /var/goddard/node.json | jq -r '.port.monitor')
+	# get the details to write out
+	tunnel_server=$(cat /var/goddard/node.json | jq -r '.server')
+	tunnel_port=$(cat /var/goddard/node.json | jq -r '.port.tunnel')
+	tunnel_monitor_port=$(cat /var/goddard/node.json | jq -r '.port.monitor')
 
-		# write out the service file
-		sudo cat <<-EOF > /etc/init/goddardtunnel.conf
+	# write out the service file
+	sudo cat <<-EOF > /etc/init/goddardtunnel.conf
 
-			description "Keeps the Goddard Tunnel Always up"
+		description "Keeps the Goddard Tunnel Always up"
 
-			start on (net-device-up IFACE=${1})
-			stop on runlevel[016]
+		start on (net-device-up IFACE=${1})
+		stop on runlevel[016]
 
-			respawn
+		respawn
 
-			env DISPLAY=:0.0
+		env DISPLAY=:0.0
 
-			exec autossh -nNT -o StrictHostKeyChecking=no -o ServerAliveInterval=15 -R ${tunnel_port}:localhost:22 -M ${tunnel_monitor_port} root@${tunnel_server}
+		exec autossh -nNT -o StrictHostKeyChecking=no -o ServerAliveInterval=15 -R ${tunnel_port}:localhost:22 -M ${tunnel_monitor_port} root@${tunnel_server}
 
-		EOF
+	EOF
 
-		# start / restart the tunnel service
-		service goddardtunnel restart
+	# start / restart the tunnel service
+	service goddardtunnel restart
 
-	fi
+fi
 
 # check if auth file was already added
 if [ ! -f /var/goddard/lock ]
 	then
-		
-		# use it
-		cat /var/goddard/node.json | jq -r .publickey >> ~/.ssh/authorized_keys
+
+		if [ -f /var/goddard/node.json ]
+		then
+			# use it
+			cat /var/goddard/node.json | jq -r .publickey > /home/goddard/.ssh/authorized_keys
+			cat /var/goddard/node.json | jq -r .publickey > ~/.ssh/authorized_keys
+		fi
 
 	fi
 
-# write the lock file, to signal we are
-date > /var/goddard/lock
+if [ -f /var/goddard/node.json ]
+	then
+		# write the lock file, to signal we are
+		date > /var/goddard/lock
+	fi

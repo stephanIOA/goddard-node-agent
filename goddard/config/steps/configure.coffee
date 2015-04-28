@@ -24,7 +24,6 @@ module.exports = exports = (params, fn) ->
 		
 		# debugging
 		console.log 'connecting to ' + address_ip_str + ' with ' + key_str + '.rsc that has the preloaded config'
-
 		
 		# debug
 		console.log 'running the import command'

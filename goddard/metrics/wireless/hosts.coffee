@@ -35,7 +35,7 @@ module.exports = exports = (params, fn) ->
 					# finish with our callback
 					doCallbackCall(null, {
 
-							router: {
+							wireless: {
 
 								hosts: parsed
 
