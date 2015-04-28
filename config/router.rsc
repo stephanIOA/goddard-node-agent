@@ -58,8 +58,8 @@ set allow-remote-requests=yes servers=8.8.8.8
 /ip dns static
 add address=192.168.88.1 name=router
 add address=192.168.88.50 comment="supports all the apps for goddard" name=\
-    .*.goddard.io
-add address=192.168.88.50 comment="default page for goddard" name=goddard.io
+    .*.goddard
+add address=192.168.88.50 comment="default page for goddard" name=goddard
 /ip firewall filter
 add action=passthrough chain=unused-hs-chain comment=\
     "place hotspot rules here" disabled=yes
@@ -90,8 +90,8 @@ add action=masquerade chain=srcnat comment="masquerade hotspot network" \
 add name=admin
 /ip hotspot walled-garden
 add comment="place hotspot rules here" disabled=yes
-add dst-host=goddard.io server=hotspot1
-add dst-host=*.goddard.io server=hotspot1
+add dst-host=goddard server=hotspot1
+add dst-host=*.goddard server=hotspot1
 /ip hotspot walled-garden ip
 add action=accept disabled=no dst-address=192.168.88.50 server=*1
 /ip upnp
