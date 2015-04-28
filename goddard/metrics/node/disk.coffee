@@ -6,6 +6,7 @@ module.exports = exports = (params, fn) ->
 	# required modules
 	df = require('node-diskfree')
 	fs = require('fs')
+	_ = require('underscore')
 
 	# get the disk info
 	df.drives (err, drives) ->
@@ -29,21 +30,45 @@ module.exports = exports = (params, fn) ->
 					fs.readFile '/proc/mdstat', (err, data) ->
 
 						# coolio
+						if err
+							fn(err)
+						else
 
+							# parse out status
+							parsed_status_matches = ('' + data).toLowerCase().match(/\[(.*?)\]/gi)
 
-						# return in details
-						fn(null, {
+							# get the last one
+							parsed_status = _.last(parsed_status_matches)
 
-							node: {
+							# final raids status
+							raid_status = []
 
-								disk: {
+							# get the status
+							parsed_status = parsed_status.replace('[', '')
+							parsed_status = parsed_status.replace(']', '')
 
-									total: Math.round( total_diskspace / 10 ) * 10 ,
-									free: Math.round( free_diskspace / 10 ) * 10,
-									raid: [ 'ACTIVE', 'ACTIVE' ]
+							# check the status
+							for drive_status in parsed_status
 
+								# depending on status add item
+								if drive_status == 'u'
+									raid_status.push('UP')
+								else
+									raid_status.push('DOWN')
+
+							# return in details
+							fn(null, {
+
+								node: {
+
+									disk: {
+
+										total: Math.round( total_diskspace / 10 ) * 10 ,
+										free: Math.round( free_diskspace / 10 ) * 10,
+										raid: raid_status
+
+									}
+									
 								}
-								
-							}
 
-						})
+							})
