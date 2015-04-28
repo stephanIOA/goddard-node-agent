@@ -89,6 +89,7 @@ add action=masquerade chain=srcnat comment="masquerade hotspot network" \
 /ip hotspot user
 add name=admin
 /ip hotspot walled-garden
+remove numbers=[/ip hotspot walled-garden find ]
 add comment="place hotspot rules here" disabled=yes
 add dst-host=goddard server=hotspot1
 add dst-host=*.goddard server=hotspot1
