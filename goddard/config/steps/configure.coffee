@@ -87,6 +87,8 @@ module.exports = exports = (params, fn) ->
 						c = new Client()
 						c.on 'ready', ->
 							c.put './line.rsc', 'line.rsc', (err) ->
+								# close the connection
+								c.end()
 								# check for a error
 								if err
 									callbackItem(err)

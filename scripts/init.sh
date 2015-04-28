@@ -12,6 +12,9 @@
 # make sure we are in the goddard folder
 cd /var/goddard/agent
 
+# overwrite the nginx default with our one
+cat /var/goddard/agent/templates/default.html > /usr/share/nginx/html/index.html
+
 # run only if cron is not locked yet
 if [ ! -f /var/goddard/app.json ]
 	then

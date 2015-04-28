@@ -27,7 +27,8 @@ module.exports = exports = (params, fn) ->
 	configHandlers = [
 
 		require('./steps/check'),
-		require('./steps/configure')
+		require('./steps/configure'),
+		require('./steps/hotspot')
 
 	]
 
