@@ -41,6 +41,7 @@ if argv.action
 
 				# add in the uid
 				runParams.uid = param_objs.uid
+				runParams.node = param_objs
 
 				# get the metric function
 				metricsRun = require('./metrics')
