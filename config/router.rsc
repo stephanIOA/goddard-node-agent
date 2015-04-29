@@ -61,6 +61,7 @@ add address=192.168.88.50 comment="supports all the apps for goddard.com" name=\
     .*.goddard.com
 add address=192.168.88.50 comment="default page for goddard.com" name=goddard.com
 /ip firewall filter
+remove numbers=[/ip firewall filter find ]
 add action=passthrough chain=unused-hs-chain comment=\
     "place hotspot rules here" disabled=yes
 add action=passthrough chain=unused-hs-chain comment=\
@@ -91,8 +92,8 @@ add name=admin
 /ip hotspot walled-garden
 remove numbers=[/ip hotspot walled-garden find ]
 add comment="place hotspot rules here" disabled=yes
-add dst-host=goddard server=hotspot1
-add dst-host=*.goddard server=hotspot1
+add dst-host=goddard.com server=hotspot1
+add dst-host=*.goddard.com server=hotspot1
 /ip hotspot walled-garden ip
 add action=accept disabled=no dst-address=192.168.88.50 server=*1
 /ip upnp
