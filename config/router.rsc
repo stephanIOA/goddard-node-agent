@@ -57,9 +57,9 @@ add address=192.168.88.0/24 comment="default configuration" dns-server=\
 set allow-remote-requests=yes servers=8.8.8.8
 /ip dns static
 add address=192.168.88.1 name=router
-add address=192.168.88.50 comment="supports all the apps for goddard" name=\
-    .*.goddard
-add address=192.168.88.50 comment="default page for goddard" name=goddard
+add address=192.168.88.50 comment="supports all the apps for goddard.com" name=\
+    .*.goddard.com
+add address=192.168.88.50 comment="default page for goddard.com" name=goddard.com
 /ip firewall filter
 add action=passthrough chain=unused-hs-chain comment=\
     "place hotspot rules here" disabled=yes

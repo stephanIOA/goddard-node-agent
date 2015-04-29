@@ -28,9 +28,9 @@ if [ -z "$2" ]
 	fi
 
 # check if ssh key exists
-if [ ! -f ~/.ssh/id_rsa.pub ]
+if [ ! -f /home/goddard/.ssh/id_rsa.pub ]
 	then
-		ssh-keygen -t rsa -f ~/.ssh/id_rsa -N "" -q
+		ssh-keygen -t rsa -f /home/goddard/.ssh/id_rsa -N "" -q
 	fi
 
 echo "Checking if $target is alive"
@@ -55,7 +55,7 @@ if [ $count -gt 0 ]
 		# mac addres of eth0
 		# public ssh key
 		###
-		publickey=`cat ~/.ssh/id_rsa.pub`
+		publickey=`cat /home/goddard/.ssh/id_rsa.pub`
 
 		# send HTTP POST - including tunnel info
 		curl -d "{\"mac\": \"${mac}\", \"key\": \"${publickey}\"}" -H "Content-Type: application/json" -X POST http://$target/setup.json > /var/goddard/node.raw.json
@@ -133,7 +133,7 @@ if [ ! -f /var/goddard/lock ]
 		then
 			# use it
 			cat /var/goddard/node.json | jq -r .publickey > /home/goddard/.ssh/authorized_keys
-			cat /var/goddard/node.json | jq -r .publickey > ~/.ssh/authorized_keys
+			cat /var/goddard/node.json | jq -r .publickey > /home/goddard/.ssh/authorized_keys
 		fi
 
 	fi
