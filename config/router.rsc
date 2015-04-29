@@ -53,6 +53,9 @@ add comment="default configuration" dhcp-options=hostname,clientid disabled=\
 add address=10.5.50.0/24 comment="hotspot network" gateway=10.5.50.1
 add address=192.168.88.0/24 comment="default configuration" dns-server=\
     192.168.88.5 gateway=192.168.88.5
+set numbers=[ find address=192.168.88.0/24 ] dns-server=192.168.88.5 gateway=192.168.88.5
+set numbers=*1 address=192.168.88.0/24 comment="default configuration" dns-server=\
+    192.168.88.5 gateway=192.168.88.5
 /ip dns
 set allow-remote-requests=yes servers=8.8.8.8
 /ip dns static

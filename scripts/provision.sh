@@ -27,6 +27,9 @@ if [ -z "$2" ]
 		target=$2
 	fi
 
+# ensure the .ssh folder exists
+mkdir -p /home/goddard/.ssh/
+
 # check if ssh key exists
 if [ ! -f /home/goddard/.ssh/id_rsa.pub ]
 	then
