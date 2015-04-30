@@ -73,8 +73,15 @@ if [ ! -f /var/goddard/lock.cron ]
 
 	fi
 
-# run the configure script
-node index.js --action configure --server http://goddard.io.co.za
+# ping router and only run if something is unconfigured
+ping -c 3 192.168.88.1 >/dev/null 2>&1
+if [ $? -ne 0 ]
+	then
+
+    	# run the configure script
+    	node index.js --action configure --server http://goddard.io.co.za
+
+	fi
 
 # run the provision script
 chmod a+x scripts/provision.sh
