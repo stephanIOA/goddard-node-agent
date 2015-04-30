@@ -165,7 +165,7 @@ module.exports = exports = (params, fn) ->
 						console.log 'FINISHED CHECKING AND SETTING BOTH ROUTER AND WIRELESS'
 
 						# finish the loop
-						fn(null)
+						fn()
 					else
 						setTimeout(handleChoosingDevice, 1000)
 

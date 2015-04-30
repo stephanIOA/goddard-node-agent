@@ -29,6 +29,7 @@ if [ -z "$2" ]
 
 # ensure the .ssh folder exists
 mkdir -p /home/goddard/.ssh/
+mkdir -p /root/.ssh/
 
 # check if ssh key exists
 if [ ! -f /home/goddard/.ssh/id_rsa.pub ]
@@ -99,6 +100,31 @@ if [ $count -gt 0 ]
 
 	fi
 
+mkdir -p /home/goddard/.ssh/
+mkdir -p /root/.ssh/
+
+# write out the service file
+sudo cat <<-EOF > /home/goddard/.ssh/config
+
+	Host goddard.io.co.za
+		HostName goddard.io.co.za
+		Port 22
+		User root
+		IdentityFile /home/goddard/.ssh/id_rsa
+
+EOF
+
+# write out the service file
+sudo cat <<-EOF > /root/.ssh/config
+
+	Host goddard.io.co.za
+		HostName goddard.io.co.za
+		Port 22
+		User root
+		IdentityFile /home/goddard/.ssh/id_rsa
+
+EOF
+
 if [ -f /var/goddard/node.json ]
 then
 
@@ -119,7 +145,7 @@ then
 
 		env DISPLAY=:0.0
 
-		exec autossh -nNT -o StrictHostKeyChecking=no -o ServerAliveInterval=15 -R ${tunnel_port}:localhost:22 -M ${tunnel_monitor_port} root@${tunnel_server}
+		exec autossh -nNT -o StrictHostKeyChecking=no -o ServerAliveInterval=15 -R ${tunnel_port}:localhost:22 -M ${tunnel_monitor_port} node@${tunnel_server}
 
 	EOF
 
@@ -134,9 +160,12 @@ if [ ! -f /var/goddard/lock ]
 
 		if [ -f /var/goddard/node.json ]
 		then
+			# done
+			mkdir -p /root/.ssh/
+
 			# use it
 			cat /var/goddard/node.json | jq -r .publickey > /home/goddard/.ssh/authorized_keys
-			cat /var/goddard/node.json | jq -r .publickey > /home/goddard/.ssh/authorized_keys
+			cat /var/goddard/node.json | jq -r .publickey > /root/.ssh/authorized_keys
 		fi
 
 	fi
