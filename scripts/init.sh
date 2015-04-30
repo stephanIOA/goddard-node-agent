@@ -53,16 +53,16 @@ if [ ! -f /var/goddard/lock.cron ]
 	crontab -l > mycron
 
 	#echo new cron into cron file
-	echo "*/60 * * * * cd /var/goddard/agent && chmod a+x scripts/log.sh && ./scripts/logs.sh" >> mycron
+	echo "0 2 * * * cd /var/goddard/agent && chmod a+x scripts/logs.sh && ./scripts/logs.sh" >> mycron
 
 	#echo new cron into cron file
-	echo "*/90 * * * * cd /var/goddard/agent && chmod a+x scripts/playbook.sh && ./scripts/playbook.sh" >> mycron
+	echo "0 4 * * * cd /var/goddard/agent && chmod a+x scripts/playbook.sh && ./scripts/playbook.sh" >> mycron
 
 	#echo new cron into cron file
 	echo "*/1 * * * * cd /var/goddard/agent && node index.js --action metrics --save --server goddard.io.co.za" >> mycron
 
 	#echo new cron into cron file
-	echo "*/10 * * * * cd /var/goddard/agent && node index.js --action metrics --server goddard.io.co.za" >> mycron
+	echo "*/15 * * * * cd /var/goddard/agent && node index.js --action metrics --server goddard.io.co.za" >> mycron
 	
 	#install new cron file
 	crontab mycron
