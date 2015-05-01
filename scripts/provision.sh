@@ -154,6 +154,17 @@ then
 
 fi
 
+if [ -f /var/goddard/node.json ]
+	then
+
+		# set the running hostname
+		hostname $(cat /var/goddard/node.json | jq -r '.serial')
+
+		# set the hostname
+		echo $(cat /var/goddard/node.json | jq -r '.serial') > /etc/hostname
+
+	fi
+
 # check if auth file was already added
 if [ ! -f /var/goddard/lock ]
 	then
