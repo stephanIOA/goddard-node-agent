@@ -12,8 +12,22 @@
 # make sure we are in the goddard folder
 cd /var/goddard/agent
 
-# overwrite the nginx default with our one
-cat /var/goddard/agent/templates/default.html > /usr/share/nginx/html/index.html
+# make sure all our default folders exist
+mkdir -p /var/goddard/apps
+mkdir -p /usr/share/nginx/html/
+
+# run only if cron is not locked yet
+if [ ! -f /var/goddard/lock.cron ]
+	then
+
+	# overwrite the nginx default with our one
+	cat /var/goddard/agent/templates/default.html > /usr/share/nginx/html/index.html
+	cat /var/goddard/agent/templates/nginx.conf > /etc/nginx/nginx.conf
+
+	fi
+
+# restart nginx
+service nginx restart
 
 # run only if cron is not locked yet
 if [ ! -f /var/goddard/app.json ]
@@ -77,10 +91,11 @@ if [ ! -f /var/goddard/lock.cron ]
 
 # ping router and only run if something is unconfigured
 ping -c 3 192.168.88.1 >/dev/null 2>&1
-if [ $? -ne 0 ]
+if [ $? -eq 0 ]
 	then
 
     	# run the configure script
+    	echo "RUNNING CONFIG SCRIPT:"
     	node index.js --action configure --server http://goddard.io.co.za
 
 	fi
