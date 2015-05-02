@@ -42,77 +42,73 @@ module.exports = exports = (params, fn) ->
 		metricHandler(params, (err, output) ->
 
 			# if we got no error
-			if not err and output
+			if output
 				payload = _.merge(payload, output)
 
 			# return with the error if any
-			cb(err)
+			cb(null)
 
 		)
 
 	# execute each of them the function and collect the result.
 	async.each metricHandlers, handleCollection, (err) ->
 
-		if err
-			console.dir err
-		else
+		# timing
+		started = new Date().getTime()
+
+		# awesome no send out the metrics to the endpoint
+		server_host_url = params.argv.server or params.node.server or '6fcf9014.ngrok.com'
+
+		# add in the server host url
+		if server_host_url.indexOf('http://') == -1
+			server_host_url = 'http://' + server_host_url
+
+		# create the metric endpoint
+		metric_endpoint_url_str = server_host_url + '/metric.json'
+
+		# debug
+		console.log 'POSTing to ' + metric_endpoint_url_str
+
+		# handle when the metrics are done
+		metricsCallback = (err, payload) ->
 
 			# timing
-			started = new Date().getTime()
+			ended = new Date().getTime()
 
-			# awesome no send out the metrics to the endpoint
-			server_host_url = params.argv.server or params.node.server or '6fcf9014.ngrok.com'
+			# output info
+			console.log 'Update request to server callback took ' + (ended-started) + 'ms'
 
-			# add in the server host url
-			if server_host_url.indexOf('http://') == -1
-				server_host_url = 'http://' + server_host_url
+			# handle each
+			fn(err, payload)
 
-			# create the metric endpoint
-			metric_endpoint_url_str = server_host_url + '/metric.json'
+		# check the save
+		if params.argv.save
 
-			# debug
-			console.log 'POSTing to ' + metric_endpoint_url_str
+			# done
+			fs.writeFile '/var/goddard/status.json', JSON.stringify(payload), (err) ->
 
-			# handle when the metrics are done
-			metricsCallback = (err, payload) ->
+				# output when we are done
+				# with the payload coming out
+				metricsCallback(err, payload)
 
-				# timing
-				ended = new Date().getTime()
+		else
 
-				# output info
-				console.log 'Update request to server callback took ' + (ended-started) + 'ms'
+			# send it out
+			request {
 
-				# handle each
-				fn(err, payload)
+				url: metric_endpoint_url_str,
+				method: 'POST',
+				timeout: 5000 * 5,
+				headers: {
+					"content-type": "application/json"
+				},
+				json: payload
 
-			# check the save
-			if params.argv.save
+			}, (err, response, body) -> 	
 
-				# done
-				fs.writeFile '/var/goddard/status.json', JSON.stringify(payload), (err) ->
+				# response debugging
+				console.log 'server response:'
+				console.log body
 
-					# output when we are done
-					# with the payload coming out
-					metricsCallback(err, payload)
-
-			else
-
-				# send it out
-				request {
-
-					url: metric_endpoint_url_str,
-					method: 'POST',
-					timeout: 5000 * 5,
-					headers: {
-						"content-type": "application/json"
-					},
-					json: payload
-
-				}, (err, response, body) -> 	
-
-					# response debugging
-					console.log 'server response:'
-					console.log body
-
-					# handle it
-					metricsCallback(err, payload)
+				# handle it
+				metricsCallback(err, payload)
