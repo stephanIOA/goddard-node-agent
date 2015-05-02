@@ -72,9 +72,6 @@ if [ ! -f /var/goddard/lock.cron ]
 	echo "0 2 * * * cd /var/goddard/agent && chmod a+x scripts/logs.sh && ./scripts/logs.sh" >> mycron
 
 	#echo new cron into cron file
-	echo "0 4 * * * cd /var/goddard/agent && chmod a+x scripts/playbook.sh && ./scripts/playbook.sh" >> mycron
-
-	#echo new cron into cron file
 	echo "*/1 * * * * cd /var/goddard/agent && node index.js --action metrics --save --server goddard.io.co.za" >> mycron
 
 	#echo new cron into cron file
