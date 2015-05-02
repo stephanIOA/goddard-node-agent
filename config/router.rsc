@@ -5,20 +5,18 @@
 add l2mtu=1598 name=goddard-bridge
 /interface ethernet
 set [ find default-name=ether1 ] comment=BGAN name=ether1-gateway
-set [ find default-name=ether2 ] comment=WebRelay name=ether2-master-local
-set [ find default-name=ether3 ] comment=HotSpot name=ether3-master-local master-port=none
-set [ find default-name=ether4 ] comment=NUC master-port=ether2-master-local \
-    name=ether4-slave-local
-set [ find default-name=ether5 ] comment=Support master-port=\
-    ether2-master-local name=ether5-slave-local
+set [ find default-name=ether2 ] comment=NUC master-port=ether2-master-local
+set [ find default-name=ether3 ] comment=WebRelay name=ether2-master-local master-port=ether2-master-local
+set [ find default-name=ether4 ] comment=HotSpot name=ether3-master-local master-port=none
+set [ find default-name=ether5 ] comment=Support  name=ether5-slave-local master-port=ether2-master-local
 /ip neighbor discovery
 set ether1-gateway comment=BGAN discover=no
-set ether2-master-local comment=WebRelay
-set ether3-master-local comment=HotSpot
-set ether4-slave-local comment=NUC
+set ether2-master-local comment=NUC
+set ether3-master-local comment=WebRealy
+set ether4-slave-local comment=HotSpot
 set ether5-slave-local comment=Support
 /interface vlan
-add comment="UKSA VLAN" interface=ether3-master-local l2mtu=1594 name=\
+add comment="UKSA VLAN" interface=ether4-master-local l2mtu=1594 name=\
     uksa-vlan use-service-tag=yes vlan-id=1
 /ip neighbor discovery
 set uksa-vlan comment="UKSA VLAN"
@@ -40,7 +38,7 @@ add address-pool=hs-pool-3 disabled=no interface=uksa-vlan name=hotspot1 \
     profile=hsprof1
 /interface bridge port
 add bridge=goddard-bridge interface=ether2-master-local
-add bridge=goddard-bridge interface=ether3-master-local
+add bridge=goddard-bridge interface=ether4-master-local
 /ip address
 add address=192.168.88.5/24 interface=ether2-master-local network=\
     192.168.88.0
@@ -103,15 +101,3 @@ add action=accept disabled=no dst-address=192.168.88.50 server=*1
 set allow-disable-external-interface=no
 /system ntp client
 set enabled=yes primary-ntp=91.189.94.4
-/tool mac-server
-set [ find default=yes ] disabled=yes
-add interface=ether2-master-local
-add interface=ether3-master-local
-add interface=ether4-slave-local
-add interface=ether5-slave-local
-/tool mac-server mac-winbox
-set [ find default=yes ] disabled=yes
-add interface=ether2-master-local
-add interface=ether3-master-local
-add interface=ether4-slave-local
-add interface=ether5-slave-local
