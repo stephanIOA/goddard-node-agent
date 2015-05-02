@@ -18,19 +18,19 @@ rm -R /var/log/output/* || true
 cp /var/log/nginx/*.log /var/log/staging/ || true
 
 # get the logs for the clients
-wget http://goddard.com/log -O /var/log/staging/clients.log
+wget http://goddard.com/log -O /var/log/staging/clients.log || true
 
 # tar the folder
-tar -czf /var/log/output/$current_timestamp.tar.gz /var/log/staging
+cd /var/log/staging && tar -czf logs.tar.gz .
 
 # create the missing folder
 ssh node@goddard.io.co.za mkdir -p /var/log/node/$(cat /var/goddard/node.json | jq -r '.uid')/$(date +%Y)/$(date +%m)/
 
 # sync up all the logs for the node
-rsync -avr -R /var/log/output/ node@goddard.io.co.za:/var/log/node/$(cat /var/goddard/node.json | jq -r '.uid')/$(date +%Y)/$(date +%m)/
+rsync -azr /var/log/staging/logs.tar.gz node@goddard.io.co.za:/var/log/node/$(cat /var/goddard/node.json | jq -r '.uid')/$(date +%Y)/$(date +%m)/$(echo $current_timestamp).tar.gz
 
 # do curl against delete endpoint
-curl -X DELETE http://goddard.com/log
+curl -X DELETE http://goddard.com/log || true
 
 # delete all the old logs now
 rm /var/log/nginx/*.log
