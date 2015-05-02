@@ -18,8 +18,6 @@ module.exports = exports = (params, fn) ->
 				# check if good
 				parsed_obj = JSON.parse(res)
 
-				console.dir parsed_obj
-
 				# did it return
 				if parsed_obj
 					# output we are going to send out
