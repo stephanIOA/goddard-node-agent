@@ -5,14 +5,14 @@
 add l2mtu=1598 name=goddard-bridge
 /interface ethernet
 set [ find default-name=ether1 ] comment=BGAN name=ether1-gateway
-set [ find default-name=ether2 ] comment=NUC master-port=ether2-master-local
-set [ find default-name=ether3 ] comment=WebRelay name=ether2-master-local master-port=ether2-master-local
-set [ find default-name=ether4 ] comment=HotSpot name=ether3-master-local master-port=none
+set [ find default-name=ether2 ] comment=NUC name=ether2-master-local master-port=none
+set [ find default-name=ether3 ] comment=WebRelay name=ether3-slave-local master-port=ether2-master-local
+set [ find default-name=ether4 ] comment=HotSpot name=ether4-master-local master-port=none
 set [ find default-name=ether5 ] comment=Support  name=ether5-slave-local master-port=ether2-master-local
 /ip neighbor discovery
 set ether1-gateway comment=BGAN discover=no
 set ether2-master-local comment=NUC
-set ether3-master-local comment=WebRealy
+set ether3-master-local comment=WebRelay
 set ether4-slave-local comment=HotSpot
 set ether5-slave-local comment=Support
 /interface vlan
