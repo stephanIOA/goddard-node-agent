@@ -9,6 +9,9 @@
 # -> Run provision script to do the handshake with server
 ##
 
+# load in all our certs
+update-ca-certificates || true
+
 # make sure we are in the goddard folder
 cd /var/goddard/agent
 
