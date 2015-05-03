@@ -145,7 +145,7 @@ then
 
 		env DISPLAY=:0.0
 
-		exec autossh -nNT -o StrictHostKeyChecking=no -o "ServerAliveInterval 15" -o "ServerAliveCountMax 3" -R ${tunnel_port}:localhost:22 -f -M ${tunnel_monitor_port} node@${tunnel_server}
+		exec autossh -nNT -o StrictHostKeyChecking=no -o "ServerAliveInterval 15" -o "ServerAliveCountMax 3" -R ${tunnel_port}:localhost:22 -M ${tunnel_monitor_port} node@${tunnel_server}
 
 	EOF
 
