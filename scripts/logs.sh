@@ -18,7 +18,7 @@ rm -R /var/log/output/* || true
 cp /var/log/nginx/*.log /var/log/staging/ || true
 
 # get the logs for the clients
-wget http://goddard.com/log -O /var/log/staging/clients.log || true
+# wget http://goddard.com/log -O /var/log/staging/clients.log || true
 
 # tar the folder
 cd /var/log/staging && tar -czf logs.tar.gz .
@@ -30,7 +30,7 @@ ssh node@goddard.io.co.za mkdir -p /var/log/node/$(cat /var/goddard/node.json | 
 rsync -azr /var/log/staging/logs.tar.gz node@goddard.io.co.za:/var/log/node/$(cat /var/goddard/node.json | jq -r '.uid')/$(date +%Y)/$(date +%m)/$(echo $current_timestamp).tar.gz
 
 # do curl against delete endpoint
-curl -X DELETE http://goddard.com/log || true
+# curl -X DELETE http://goddard.com/log || true
 
 # delete all the old logs now
 rm /var/log/nginx/*.log
