@@ -64,6 +64,24 @@ return new Za.prototype.init(a,b,c,d,e)}m.Tween=Za,Za.prototype={constructor:Za,
 	
 				setTimeout(handleMetric, 1000);
 
+				var handleFinishCheck = function(){
+	
+					$.ajax({
+	
+						url: 'http://data.goddard.com/build.json',
+						dataType: 'json',
+						success: function(data) {
+							
+							document.location = 'http://goddard.com';
+
+						}
+
+					});
+
+				};
+	
+				setTimeout(handleFinishCheck, 1000);
+
 			});
 
 		</script>
