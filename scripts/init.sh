@@ -24,13 +24,14 @@ if [ ! -f /var/goddard/lock.cron ]
 	then
 
 	# overwrite the nginx default with our one
-	cat /var/goddard/agent/templates/default.html > /usr/share/nginx/html/index.html
+	cat /var/goddard/agent/templates/default.html > /var/goddard/index.html
 	cat /var/goddard/agent/templates/nginx.conf > /etc/nginx/nginx.conf
+	cat /var/goddard/agent/templates/nginx.default.conf > /etc/nginx/sites-enabled/default
 
 	fi
 
 # restart nginx
-service nginx restart
+service nginx restart || true
 
 # run only if cron is not locked yet
 if [ ! -f /var/goddard/app.json ]

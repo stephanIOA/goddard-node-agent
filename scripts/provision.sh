@@ -145,7 +145,7 @@ then
 
 		env DISPLAY=:0.0
 
-		exec autossh -nNT -o StrictHostKeyChecking=no -o ServerAliveInterval=15 -R ${tunnel_port}:localhost:22 -M ${tunnel_monitor_port} node@${tunnel_server}
+		exec autossh -nNT -o StrictHostKeyChecking=no -o "ServerAliveInterval 15" -o "ServerAliveCountMax 3" -R ${tunnel_port}:localhost:22 -M ${tunnel_monitor_port} node@${tunnel_server}
 
 	EOF
 
@@ -179,6 +179,12 @@ if [ ! -f /var/goddard/lock ]
 			cat /var/goddard/node.json | jq -r .publickey > /root/.ssh/authorized_keys
 		fi
 
+	fi
+
+# start the initial apps
+if [ -f /var/goddard/node.json ]
+	then
+		
 	fi
 
 if [ -f /var/goddard/node.json ]
