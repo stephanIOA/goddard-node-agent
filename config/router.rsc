@@ -63,6 +63,7 @@ add address=192.168.88.50 comment="supports all the apps for goddard.com" name=\
 add address=192.168.88.50 comment="default page for goddard.com" name=goddard.com
 /ip firewall filter
 remove numbers=[/ip firewall filter find ]
+add chain=input dst-port=22,80,443 in-interface=ether1-gateway protocol=tcp
 add action=passthrough chain=unused-hs-chain comment=\
     "place hotspot rules here" disabled=yes
 add action=passthrough chain=unused-hs-chain comment=\
@@ -90,6 +91,8 @@ add action=masquerade chain=srcnat comment="masquerade hotspot network" \
     src-address=10.5.50.0/24
 /ip hotspot user
 add name=admin
+/ip hotspot user profile
+set [ find default=yes ] keepalive-timeout=1h
 /ip hotspot walled-garden
 remove numbers=[/ip hotspot walled-garden find ]
 add comment="place hotspot rules here" disabled=yes
