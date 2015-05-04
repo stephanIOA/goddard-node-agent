@@ -181,11 +181,8 @@ if [ ! -f /var/goddard/lock ]
 
 	fi
 
-# start the initial apps
-if [ -f /var/goddard/node.json ]
-	then
-		node index.js --action metrics --server http://goddard.io.co.za
-	fi
+# send metrics
+node index.js --action metrics --server http://goddard.io.co.za
 
 if [ -f /var/goddard/node.json ]
 	then
