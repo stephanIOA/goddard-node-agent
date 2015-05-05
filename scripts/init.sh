@@ -33,16 +33,8 @@ if [ ! -f /var/goddard/lock.cron ]
 # restart nginx
 service nginx restart || true
 
-# run only if cron is not locked yet
-if [ ! -f /var/goddard/app.json ]
-	then
-
-	# write to the file
-	echo "[]" > /var/goddard/apps.json
-	echo "{}" > /var/goddard/build.json
-	echo "{}" > /var/goddard/status.json
-
-	fi
+# write out a blank build JSON file
+echo "{}" > /var/goddard/build.json
 
 ##
 # Setup the base networking config
