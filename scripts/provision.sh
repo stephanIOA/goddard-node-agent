@@ -163,6 +163,15 @@ if [ -f /var/goddard/node.json ]
 		# set the hostname
 		echo $(cat /var/goddard/node.json | jq -r '.serial') > /etc/hostname
 
+		# run only if cron is not locked yet
+		if [ ! -f /var/goddard/lock ]
+			then
+
+			# write the initial hosts
+			echo "127.0.0.1		$(cat /var/goddard/node.json | jq -r '.serial')" >> /etc/hosts
+
+		fi
+
 	fi
 
 # check if auth file was already added
