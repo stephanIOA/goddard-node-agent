@@ -122,6 +122,8 @@ sudo cat <<-EOF > /root/.ssh/config
 		Port 22
 		User root
 		IdentityFile /home/goddard/.ssh/id_rsa
+		KeepAlive yes
+		ServerAliveInterval 20
 
 EOF
 
