@@ -68,10 +68,10 @@ if [ ! -f /var/goddard/lock.cron ]
 	echo "*/60 * * * * cd /var/goddard/agent && chmod a+x scripts/logs.sh && ./scripts/logs.sh" >> mycron
 
 	#echo new cron into cron file
-	echo "*/1 * * * * cd /var/goddard/agent && node index.js --action metrics --save --server goddard.io.co.za" >> mycron
+	echo "*/1 * * * * cd /var/goddard/agent && node index.js --action metrics --save --server hub.goddard.unicore.io" >> mycron
 
 	#echo new cron into cron file
-	echo "*/15 * * * * cd /var/goddard/agent && node index.js --action metrics --server goddard.io.co.za" >> mycron
+	echo "*/15 * * * * cd /var/goddard/agent && node index.js --action metrics --server hub.goddard.unicore.io" >> mycron
 	
 	#install new cron file
 	crontab mycron
@@ -89,7 +89,7 @@ if [ $? -eq 0 ]
 
     	# run the configure script
     	echo "RUNNING CONFIG SCRIPT:"
-    	node index.js --action configure --server http://goddard.io.co.za
+    	node index.js --action configure --server http://hub.goddard.unicore.io
 
 	fi
 
