@@ -22,7 +22,7 @@ if [ -z "$1" ]
 # the target (goddard-hub) - default to the satellite detault IP
 if [ -z "$2" ]
 	then 
-		target="goddard.io.co.za"
+		target="hub.goddard.unicore.io"
 	else
 		target=$2
 	fi
@@ -106,8 +106,8 @@ mkdir -p /root/.ssh/
 # write out the service file
 sudo cat <<-EOF > /home/goddard/.ssh/config
 
-	Host goddard.io.co.za
-		HostName goddard.io.co.za
+	Host hub.goddard.unicore.io
+		HostName hub.goddard.unicore.io
 		Port 22
 		User root
 		IdentityFile /home/goddard/.ssh/id_rsa
@@ -117,8 +117,8 @@ EOF
 # write out the service file
 sudo cat <<-EOF > /root/.ssh/config
 
-	Host goddard.io.co.za
-		HostName goddard.io.co.za
+	Host hub.goddard.unicore.io
+		HostName hub.goddard.unicore.io
 		Port 22
 		User root
 		IdentityFile /home/goddard/.ssh/id_rsa
@@ -191,7 +191,7 @@ if [ ! -f /var/goddard/lock ]
 	fi
 
 # send metrics
-node index.js --action metrics --server http://goddard.io.co.za
+node index.js --action metrics --server http://hub.goddard.unicore.io
 
 if [ -f /var/goddard/node.json ]
 	then
