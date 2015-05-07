@@ -15,7 +15,7 @@ echo "{\"build\":\"busy\",\"process\":\"Downloading app list for node ...\",\"ti
 curl "http://hub.goddard.unicore.io/apps.json?uid=$(cat /var/goddard/node.json | jq -r '.uid')" > /var/goddard/apps.raw.json
 
 # check if the returned json was valid
-eval cat /var/goddard/apps.raw.json | jq -r '.'
+# eval cat /var/goddard/apps.raw.json | jq -r '.'
 
 # register the return code
 ret_code=$?
