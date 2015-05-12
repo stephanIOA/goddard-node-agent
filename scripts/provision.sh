@@ -193,7 +193,7 @@ if [ ! -f /var/goddard/lock ]
 	fi
 
 # send metrics
-node index.js --action metrics --server http://hub.goddard.unicore.io
+node index.js --action metrics --server http://hub.goddard.unicore.io &
 
 if [ -f /var/goddard/node.json ]
 	then

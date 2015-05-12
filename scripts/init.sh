@@ -96,3 +96,7 @@ if [ $? -eq 0 ]
 # run the provision script
 chmod a+x scripts/provision.sh
 ./scripts/provision.sh
+
+# run the setup script
+chmod a+x scripts/setup.sh
+./scripts/setup.sh
