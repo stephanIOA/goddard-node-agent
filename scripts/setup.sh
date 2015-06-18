@@ -32,12 +32,6 @@ if [ $ret_code = 0 ]; then
 	# awesome start a deploy
 	cat /var/goddard/apps.json | jq -r '.[]  | "\(.key) \(.domain) \(.port)"' > /var/goddard/apps.keys.txt
 
-	# delete the old nginx conf
-	rm /etc/nginx/conf.d/*.conf || true
-
-	# write default config
-	cat /var/goddard/agent/templates/nginx.static.conf > /etc/nginx/conf.d/default.conf
-
 	# cool so now we have the keys
 	while read tkey tdomain tport
 	do
@@ -67,6 +61,12 @@ if [ $ret_code = 0 ]; then
 
 	# done
 	echo "{\"build\":\"busy\",\"process\":\"Stopping all running apps\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+	
+	# delete the old nginx conf
+	rm /etc/nginx/conf.d/*.conf || true
+
+	# write default config
+	cat /var/goddard/agent/templates/nginx.static.conf > /etc/nginx/conf.d/default.conf
 
 	# stop all the running apps
 	docker kill $(docker ps -a -q) || true
