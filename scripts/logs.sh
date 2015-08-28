@@ -40,3 +40,6 @@ rm -R /var/log/staging/*
 
 # build a "staging" folder for the logs
 rm -R /var/log/output/*
+
+# reload nginx
+nginx -s reload

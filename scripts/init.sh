@@ -98,5 +98,5 @@ chmod a+x scripts/provision.sh
 ./scripts/provision.sh
 
 # run the setup script
-chmod a+x scripts/setup.sh
-./scripts/setup.sh
+chmod a+x scripts/boot.sh
+./scripts/boot.sh
