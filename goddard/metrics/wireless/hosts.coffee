@@ -10,6 +10,20 @@ module.exports = exports = (params, fn) ->
 			fn(err, type_str)
 			already_calledback = true
 
+	# handles any error
+	handleConnectionErrors = (err) ->
+
+		# connection error, finish with our callback
+		doCallbackCall(null, {
+
+				wireless: {
+
+					status: 'error'
+
+				}
+
+			})
+
 	try
 		# right so if we got here this was probably from boot
 		# ping the main router and configure it
@@ -22,9 +36,13 @@ module.exports = exports = (params, fn) ->
 			# open the channel
 			chan = conn.openChannel()
 
+			# handle errors
+			chan.on 'error', handleConnectionErrors
+
 			# get the ip
 			chan.write [ '/ip/hotspot/host/print' ], ->
 				chan.on 'done', (data) ->
+					
 					# parse the items
 					parsed = mikroApi.parseItems(data)
 
@@ -42,5 +60,11 @@ module.exports = exports = (params, fn) ->
 							}
 
 						})
+
+		# handle errors
+		connection.on 'error', handleConnectionErrors
+
 	catch e
+		
+		# signal that the agent is done
 		doCallbackCall(e)
