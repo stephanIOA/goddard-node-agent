@@ -25,9 +25,15 @@ module.exports = exports = (params, fn) ->
 			# get the ip
 			chan.write [ '/ip/hotspot/host/print' ], ->
 				chan.on 'done', (data) ->
+					
 					# parse the items
 					parsed = mikroApi.parseItems(data)
 
+					# close the connection
+					chan.close(true)
+					conn.close(true)
+
+					# handle done
 					doCallbackCall(null, {
 
 							router: {
