@@ -60,6 +60,9 @@ set allow-remote-requests=yes servers=8.8.8.8
 add address=192.168.88.1 name=router
 add address=192.168.88.50 comment="supports all the apps for goddard.com" name=\
     .*.goddard.com
+add address=192.168.88.50 comment="supports all the apps for mamawifi.com" name=\
+    .*.mamawifi.com
+add address=192.168.88.50 comment="default page for mamawifi.com" name=mamawifi.com
 add address=192.168.88.50 comment="default page for goddard.com" name=goddard.com
 /ip firewall filter
 remove numbers=[/ip firewall filter find ]
@@ -100,6 +103,23 @@ add dst-host=goddard.com server=hotspot1
 add dst-host=*.goddard.com server=hotspot1
 /ip hotspot walled-garden ip
 add action=accept disabled=no dst-address=192.168.88.50 server=*1
+/ip hotspot walled-garden
+add dst-host=www.mamawifi.com server=hotspot1
+add dst-host=*.mamawifi.com server=hotspot1
+add dst-host=www.surepmch.org server=hotspot1
+add dst-host=*.surepmch.org server=hotspot1
+add dst-host=www.surepmch.org server=hotspot1
+add dst-host=*.surepmch.org server=hotspot1
+add dst-host=surepmchreports.org server=hotspot1
+add dst-host=*.surepmchreports.org server=hotspot1
+add dst-host=dhis2nigeria.org.ng server=hotspot1
+add dst-host=*.dhis2nigeria.org.ng server=hotspot1
+add dst-host=nigeriahealthwatch.com server=hotspot1
+add dst-host=*.nigeriahealthwatch.com server=hotspot1
+add dst-host=health-orb.org server=hotspot1
+add dst-host=*.health-orb.org server=hotspot1
+add dst-host=babycenter.com server=hotspot1
+add dst-host=*.babycenter.com server=hotspot1
 /ip upnp
 set allow-disable-external-interface=no
 /system ntp client
