@@ -14,7 +14,7 @@ do
 	echo "kill all previous runs that are still active of setup"
 
 	# kill the running instance
-	pkill -9 -f setup.sh
+	pkill -15 -f setup.sh
 
 	# debug
 	echo "Delete setup lock, if any ..."
