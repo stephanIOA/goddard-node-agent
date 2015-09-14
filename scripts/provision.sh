@@ -123,6 +123,7 @@ sudo cat <<-EOF > /root/.ssh/config
 		User root
 		IdentityFile /home/goddard/.ssh/id_rsa
 		KeepAlive yes
+		StrictHostKeyChecking no
 		ServerAliveInterval 20
 
 EOF
