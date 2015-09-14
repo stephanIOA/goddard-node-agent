@@ -3,79 +3,54 @@
 # mark as executable
 chmod a+x scripts/setup.sh
 
-# delete a lock file older than 60 minutes, delete it
-if test `find /var/goddard -name boot.lock -mmin +15`
-then
+# echo now
+echo "Starting provision service that will run every few hours/minutes to provision apps"
+
+# continues while loop
+while :
+do
 
 	# debug
-	echo "Kill all running instaces ..."
+	echo "kill all previous runs that are still active of setup"
 
-	# kill the app
-	pkill -9 -f boot.sh
+	# kill the running instance
+	pkill -9 -f setup.sh
 
-	# delete the lock file if any
-	rm /var/goddard/boot.lock || true
-	
-fi
+	# debug
+	echo "Delete setup lock, if any ..."
 
-# check for a lock
-if [ ! -f /var/goddard/boot.lock ]
-then
+	# deletes the setup lock if any
+	rm /var/goddard/setup.lock || true
 
-	# stop any commands already running ...
-	# pkill -9 -f boot.sh
+	# debug
+	echo "Running setup script"
 
-	# write the lock
-	echo date > /var/goddard/boot.lock
+	# execute command and update status code for done
+	sh scripts/setup.sh
 
-	# echo now
-	echo "attempting provision"
+	# get the code
+	ret_code=$?
 
-	# handle done
-	done=0
+	# debug
+	echo "Setup script is done running"
 
-	# continues while loop
-	while :
-	do
+	# check if the exit code was a 1, so 0 ...
+	if [ "$ret_code" -lt 1 ]; then
 
 		# debug
-		echo "kill all previous runs that are still active"
+		echo "Setup script was successful, sleeping for 2 hours"
 
-		# kill the running instance
-		pkill -9 -f setup.sh
+		# sleep for 2 hours then
+		sleep 120m
 
-		# debug
-		echo "Delete setup lock"
-
-		# deletes the setup lock if any
-		rm /var/goddard/setup.lock || true
+	else
 
 		# debug
-		echo "Running setup script"
-
-		# execute command and update status code for done
-		sh scripts/setup.sh
-
-		# get the code
-		ret_code=$?
-
-		# debug
-		echo "Setup script is done"
-
-		# check if the exit code was a 1, so 0 ...
-		if [ "$ret_code" -lt 1 ]; then
-			break
-		fi
-
-		# output debugging
-		echo "Sleeping for 1 minute"
+		echo "Setup script failed, sleeping for 15 minute then trying again"
 
 		# sleep for 1 minutes
-		sleep 1m
+		sleep 15m
 
-	done
+	fi
 
-	# delete the lock file
-	rm /var/goddard/boot.lock || true
-
-fi
+done

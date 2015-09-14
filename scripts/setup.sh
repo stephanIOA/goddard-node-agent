@@ -27,8 +27,8 @@ if [ ! -f /var/goddard/setup.lock ]; then
 	# read in all the apps from the server
 	curl "http://hub.goddard.unicore.io/apps.json?uid=$(cat /var/goddard/node.json | jq -r '.uid')" > /var/goddard/apps.raw.json
 
-	# check if the returned json was valid
-	# eval cat /var/goddard/apps.raw.json | jq -r '.'
+	# reload flag
+	nginx_reload_flag=0
 
 	# register the return code
 	ret_code=$?
@@ -62,101 +62,163 @@ if [ ! -f /var/goddard/setup.lock ]; then
 			curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
 
 			# sync down the code
-			rsync -aPzr --progress node@hub.goddard.unicore.io:/var/goddard/apps/$tkey/ /var/goddard/apps/$tkey
+			amount=$(rsync -aPzri --progress node@hub.goddard.unicore.io:/var/goddard/apps/$tkey/ /var/goddard/apps/$tkey | wc -l)
 
-			# debug
-			echo "Building $tdomain"
+			# check if the exit code was a 1, so 0 ...
+			if [ "$amount" -lt 1 ]; then
 
-			# done
-			echo "{\"build\":\"busy\",\"process\":\"Building $tdomain\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+				# mark as 'yes'
+				nginx_reload_flag=1
+				
+				# debug
+				echo "Building $tdomain"
 
-			# post to server
-			curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
+				# done
+				echo "{\"build\":\"busy\",\"process\":\"Building $tdomain\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
 
-			# build the app
-			cd /var/goddard/apps/$tkey && docker build --tag="$tkey" --rm=true .
+				# post to server
+				curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
 
-		done < /var/goddard/apps.keys.txt
+				# build the app
+				cd /var/goddard/apps/$tkey && docker build --tag="$tkey" --rm=true .
 
-		# done
-		echo "Stopping all running apps"
+				# done
+				echo "Stopping running apps"
 
-		# done
-		echo "{\"build\":\"busy\",\"process\":\"Stopping all running apps\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+				# done
+				echo "{\"build\":\"busy\",\"process\":\"Stopping all running apps\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
 
-		# post to server
-		curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
-		
-		# delete the old nginx conf
-		rm /etc/nginx/conf.d/*.conf || true
+				# post to server
+				curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
 
-		# write default config
-		cat /var/goddard/agent/templates/nginx.static.conf > /etc/nginx/conf.d/default.conf
+				# stop all the running apps
+				docker kill $(docker ps -a -q | grep $tkey) || true
 
-		# stop all the running apps
-		docker kill $(docker ps -a -q) || true
+				# start the app
+				echo "Starting $tdomain"
 
-		# cool so now we have the keys
-		while read tkey tdomain tport
-		do
+				# done
+				echo "{\"build\":\"busy\",\"process\":\"Starting $tdomain\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
 
-			# start the app
-			echo "Starting $tdomain"
+				# start the app
+				cd /var/goddard/apps/$tkey && docker run --restart=always -p $tport:8080 -d $tkey
 
-			# done
-			echo "{\"build\":\"busy\",\"process\":\"Starting $tdomain\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+				# done
+				echo "Adding $tdomain web server config"
 
-			# start the app
-			cd /var/goddard/apps/$tkey && docker run --restart=always -p $tport:8080 -d $tkey
+				# done
+				echo "{\"build\":\"busy\",\"process\":\"Adding $tdomain web server config\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
 
-			# done
-			echo "Adding $tdomain web server config"
+				# post to server
+				curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
 
-			# done
-			echo "{\"build\":\"busy\",\"process\":\"Adding $tdomain web server config\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+				# write out the service file
+				sudo cat <<-EOF > /etc/nginx/conf.d/$tdomain.conf
 
-			# post to server
-			curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
+					server {
 
-			# write out the service file
-			sudo cat <<-EOF > /etc/nginx/conf.d/$tdomain.conf
+						listen                          80;
+						server_name                     $tdomain;
+						access_log                      /var/log/nginx/${tkey}.access.log;
+						error_log                       /var/log/nginx/${tkey}.error.log;
 
-				server {
+						location / {
 
-					listen                          80;
-					server_name                     $tdomain;
-					access_log                      /var/log/nginx/${tkey}.access.log;
-					error_log                       /var/log/nginx/${tkey}.error.log;
+							proxy_pass                  http://127.0.0.1:${tport}\$request_uri;
+							proxy_redirect              off;
 
-					location / {
+							proxy_set_header            Host             \$host;
+							proxy_set_header            X-Real-IP        \$remote_addr;
+							proxy_set_header            X-Forwarded-For  \$proxy_add_x_forwarded_for;
+							proxy_max_temp_file_size    0;
 
-						proxy_pass                  http://127.0.0.1:${tport}\$request_uri;
-						proxy_redirect              off;
+							client_max_body_size        10m;
+							client_body_buffer_size     128k;
 
-						proxy_set_header            Host             \$host;
-						proxy_set_header            X-Real-IP        \$remote_addr;
-						proxy_set_header            X-Forwarded-For  \$proxy_add_x_forwarded_for;
-						proxy_max_temp_file_size    0;
+							proxy_connect_timeout       120;
+							proxy_send_timeout          1200;
+							proxy_read_timeout          120;
 
-						client_max_body_size        10m;
-						client_body_buffer_size     128k;
+							proxy_buffer_size           128k;
+							proxy_buffers               4 256k;
+							proxy_busy_buffers_size     256k;
+							proxy_temp_file_write_size  256k;
 
-						proxy_connect_timeout       120;
-						proxy_send_timeout          1200;
-						proxy_read_timeout          120;
-
-						proxy_buffer_size           128k;
-						proxy_buffers               4 256k;
-						proxy_busy_buffers_size     256k;
-						proxy_temp_file_write_size  256k;
+						}
 
 					}
 
-				}
+				EOF
 
-			EOF
+			fi
 
 		done < /var/goddard/apps.keys.txt
+
+		# check if the exit code was a 1, so 0 ...
+		if [ "$nginx_reload_flag" = 1 ]; then
+	
+			# delete the old nginx conf
+			rm /etc/nginx/conf.d/*.conf || true
+
+			# write default config
+			cat /var/goddard/agent/templates/nginx.static.conf > /etc/nginx/conf.d/default.conf
+
+			# cool so now we have the keys
+			while read tkey tdomain tport
+			do
+				# done
+				echo "Adding $tdomain web server config"
+
+				# done
+				echo "{\"build\":\"busy\",\"process\":\"Adding $tdomain web server config\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+
+				# post to server
+				curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
+
+				# write out the service file
+				sudo cat <<-EOF > /etc/nginx/conf.d/$tdomain.conf
+
+					server {
+
+						listen                          80;
+						server_name                     $tdomain;
+						access_log                      /var/log/nginx/${tkey}.access.log;
+						error_log                       /var/log/nginx/${tkey}.error.log;
+
+						location / {
+
+							proxy_pass                  http://127.0.0.1:${tport}\$request_uri;
+							proxy_redirect              off;
+
+							proxy_set_header            Host             \$host;
+							proxy_set_header            X-Real-IP        \$remote_addr;
+							proxy_set_header            X-Forwarded-For  \$proxy_add_x_forwarded_for;
+							proxy_max_temp_file_size    0;
+
+							client_max_body_size        10m;
+							client_body_buffer_size     128k;
+
+							proxy_connect_timeout       120;
+							proxy_send_timeout          1200;
+							proxy_read_timeout          120;
+
+							proxy_buffer_size           128k;
+							proxy_buffers               4 256k;
+							proxy_busy_buffers_size     256k;
+							proxy_temp_file_write_size  256k;
+
+						}
+
+					}
+
+				EOF
+
+			done < /var/goddard/apps.keys.txt
+
+			# restart nginx
+			service nginx reload || true
+
+		fi
 
 	else			
 
@@ -173,9 +235,6 @@ if [ ! -f /var/goddard/setup.lock ]; then
 		exit 1
 
 	fi
-
-	# restart nginx
-	service nginx restart || true
 
 	# done
 	echo "{\"build\":\"done\",\"process\":\"Done\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json

@@ -15,9 +15,6 @@ update-ca-certificates || true
 # make sure we are in the goddard folder
 cd /var/goddard/agent
 
-# delete lock files
-rm /var/goddard/boot.lock || true
-
 # make sure all our default folders exist
 mkdir -p /var/goddard/apps
 mkdir -p /usr/share/nginx/html/
@@ -55,6 +52,9 @@ ifdown eth0 && ifup eth0
 # up and down the new virtual interface
 ifdown eth0:1
 ifup eth0:1
+
+# ensure upstart for boot is written
+cat boot.upstart.conf > /etc/init/goddardboot.conf
 
 ##
 # Write out the cron jobs required for the system
@@ -118,7 +118,3 @@ if [ $? -eq 0 ]
 # run the provision script
 chmod a+x scripts/provision.sh
 ./scripts/provision.sh
-
-# run the setup script
-chmod a+x scripts/boot.sh
-./scripts/boot.sh
