@@ -15,6 +15,9 @@ update-ca-certificates || true
 # make sure we are in the goddard folder
 cd /var/goddard/agent
 
+# delete lock files
+rm /var/goddard/boot.lock || true
+
 # make sure all our default folders exist
 mkdir -p /var/goddard/apps
 mkdir -p /usr/share/nginx/html/
