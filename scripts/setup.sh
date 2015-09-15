@@ -72,7 +72,7 @@ if [ ! -f /var/goddard/setup.lock ]; then
 			amount=$(rsync -aPzri --progress node@hub.goddard.unicore.io:/var/goddard/apps/$tkey/ /var/goddard/apps/$tkey | wc -l)
 
 			# check the amount changed files
-			if [ "$amount" -gt 0 ]; then
+			if [ "$amount" -gt 1 ]; then
 
 				# mark as 'yes'
 				nginx_reload_flag=1
@@ -98,8 +98,12 @@ if [ ! -f /var/goddard/setup.lock ]; then
 				# post to server
 				curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
 
+				# run the docker command
+				# docker ps -a -q | grep $tkey
+
 				# stop all the running apps
-				docker kill $(docker ps -a -q | grep $tkey) || true
+				# docker kill $(docker ps -a -q | grep $tkey) || true
+				docker kill $(docker ps -a | awk '{ print $1,$2 }' | grep $tkey | awk '{print $1 }')
 
 				# start the app
 				echo "Starting $tdomain"
