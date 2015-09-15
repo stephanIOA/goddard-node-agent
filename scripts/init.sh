@@ -99,3 +99,6 @@ if [ $? -eq 0 ]
 # run the provision script
 chmod a+x scripts/provision.sh
 ./scripts/provision.sh
+
+# ensure the service is started
+service goddardboot start
