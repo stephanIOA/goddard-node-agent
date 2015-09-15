@@ -12,6 +12,34 @@
 # load in all our certs
 update-ca-certificates || true
 
+# try and ping the google dns server after which it will try and provision
+while :
+do
+
+	# debug
+	echo "Perform a ping to 8.8.8.8 to check if the internet is active"
+
+	# do the actual ping	
+	ping -c 3 8.8.8.8 >/dev/null 2>&1
+	if [ $? -eq 0 ]
+		then
+
+			# debug
+			echo "Was able to ping 8.8.8.8, so assuming internet is fine ..."
+
+			# kill it
+			break
+
+		fi
+
+	# debugging
+	echo "Waiting for 1 minute before trying 8.8.8.8 again to check for internet"
+
+	# wait for 1 minutes
+	sleep 1m
+
+done
+
 # make sure we are in the goddard folder
 cd /var/goddard/agent
 
