@@ -82,7 +82,7 @@ ifdown eth0:1
 ifup eth0:1
 
 # ensure upstart for boot is written
-cat boot.upstart.conf > /etc/init/goddardboot.conf
+cat scripts/boot.upstart.conf > /etc/init/goddardboot.conf
 
 ##
 # Write out the cron jobs required for the system
