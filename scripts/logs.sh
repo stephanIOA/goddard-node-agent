@@ -35,11 +35,11 @@ rsync -azr /var/log/staging/logs.tar.gz node@hub.goddard.unicore.io:/var/log/nod
 # delete all the old logs now
 rm /var/log/nginx/*.log
 
+# Manually tell Nginx to rotate the logs to ensure new ones are created after removal.
+kill -USR1 `cat /var/run/nginx.pid`
+
 # build a "staging" folder for the logs
 rm -R /var/log/staging/*
 
 # build a "staging" folder for the logs
 rm -R /var/log/output/*
-
-# reload nginx
-nginx -s reload
