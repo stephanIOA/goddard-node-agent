@@ -48,7 +48,7 @@ do
 		# debug
 		echo "Setup script failed, sleeping for 15 minute then trying again"
 
-		# sleep for 1 minutes
+		# sleep for 15 minutes
 		sleep 15m
 
 	fi
