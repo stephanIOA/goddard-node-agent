@@ -37,7 +37,7 @@ if [ ! -f /var/goddard/setup.lock ]; then
 	if [ $ret_code = 0 ]; then
 
 		# check the diff first
-		DIFF=$(diff /var/goddard/apps.raw.json /var/goddard/apps.json) 
+		DIFF=$(diff /var/goddard/apps.raw.json /var/goddard/apps.json | cat)
 		if [ "$DIFF" != "" ] 
 		then
 			nginx_reload_flag=1
@@ -125,6 +125,7 @@ if [ ! -f /var/goddard/setup.lock ]; then
 			rm /etc/nginx/conf.d/*.conf || true
 
 			# write default config
+			cat /var/goddard/agent/templates/unknown.html > /var/goddard/index.html
 			cat /var/goddard/agent/templates/nginx.static.conf > /etc/nginx/conf.d/default.conf
 
 			# cool so now we have the keys
