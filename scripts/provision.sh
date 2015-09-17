@@ -110,6 +110,7 @@ sudo cat <<-EOF > /home/goddard/.ssh/config
 		HostName hub.goddard.unicore.io
 		Port 22
 		User root
+		StrictHostKeyChecking no
 		IdentityFile /home/goddard/.ssh/id_rsa
 
 EOF
@@ -123,6 +124,7 @@ sudo cat <<-EOF > /root/.ssh/config
 		User root
 		IdentityFile /home/goddard/.ssh/id_rsa
 		KeepAlive yes
+		StrictHostKeyChecking no
 		ServerAliveInterval 20
 
 EOF
