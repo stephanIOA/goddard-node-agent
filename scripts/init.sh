@@ -84,33 +84,6 @@ ifup eth0:1
 # ensure upstart for boot is written
 cat scripts/boot.upstart.conf > /etc/init/goddardboot.conf
 
-# create the tunnel if not present
-if [ -f /var/goddard/node.json ]
-then
-
-	# get the details to write out
-	tunnel_server=$(cat /var/goddard/node.json | jq -r '.server')
-	tunnel_port=$(cat /var/goddard/node.json | jq -r '.port.tunnel')
-	tunnel_monitor_port=$(cat /var/goddard/node.json | jq -r '.port.monitor')
-
-	# write out the service file
-	sudo cat <<-EOF > /etc/init/goddardtunnel.conf
-
-		description "Keeps the Goddard Tunnel Always up"
-
-		start on (net-device-up IFACE=${1})
-		stop on runlevel[016]
-
-		respawn
-
-		env DISPLAY=:0.0
-
-		exec autossh -nNT -o StrictHostKeyChecking=no -o "ServerAliveInterval 15" -o "ServerAliveCountMax 3" -R ${tunnel_port}:localhost:22 -M ${tunnel_monitor_port} node@${tunnel_server}
-
-	EOF
-
-fi
-
 ##
 # Write out the cron jobs required for the system
 ##
@@ -157,6 +130,33 @@ chmod a+x scripts/provision.sh
 
 # ensure the service is started
 service goddardboot start
+
+# create the tunnel if not present
+if [ -f /var/goddard/node.json ]
+then
+
+	# get the details to write out
+	tunnel_server=$(cat /var/goddard/node.json | jq -r '.server')
+	tunnel_port=$(cat /var/goddard/node.json | jq -r '.port.tunnel')
+	tunnel_monitor_port=$(cat /var/goddard/node.json | jq -r '.port.monitor')
+
+	# write out the service file
+	sudo cat <<-EOF > /etc/init/goddardtunnel.conf
+
+		description "Keeps the Goddard Tunnel Always up"
+
+		start on (net-device-up IFACE=${1})
+		stop on runlevel[016]
+
+		respawn
+
+		env DISPLAY=:0.0
+
+		exec autossh -nNT -o StrictHostKeyChecking=no -o "ServerAliveInterval 15" -o "ServerAliveCountMax 3" -R ${tunnel_port}:localhost:22 -M ${tunnel_monitor_port} node@${tunnel_server}
+
+	EOF
+
+fi
 
 # try to start or just ignore error if already started
 service goddardtunnel start || true
