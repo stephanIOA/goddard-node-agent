@@ -7,7 +7,7 @@ mkdir -p /var/goddard
 if [ ! -f /var/goddard/setup.lock ]; then
 
 	# write the lock
-	echo date > /var/goddard/setup.lock
+	echo `date` > /var/goddard/setup.lock
 
 	# done
 	echo "{\"build\":\"busy\",\"process\":\"Loading base image\",\"timestamp\":\"$( date +%s )\"}" > /var/goddard/build.json
