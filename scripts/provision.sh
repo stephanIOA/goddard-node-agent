@@ -130,35 +130,6 @@ sudo cat <<-EOF > /root/.ssh/config
 EOF
 
 if [ -f /var/goddard/node.json ]
-then
-
-	# get the details to write out
-	tunnel_server=$(cat /var/goddard/node.json | jq -r '.server')
-	tunnel_port=$(cat /var/goddard/node.json | jq -r '.port.tunnel')
-	tunnel_monitor_port=$(cat /var/goddard/node.json | jq -r '.port.monitor')
-
-	# write out the service file
-	sudo cat <<-EOF > /etc/init/goddardtunnel.conf
-
-		description "Keeps the Goddard Tunnel Always up"
-
-		start on (net-device-up IFACE=${1})
-		stop on runlevel[016]
-
-		respawn
-
-		env DISPLAY=:0.0
-
-		exec autossh -nNT -o StrictHostKeyChecking=no -o "ServerAliveInterval 15" -o "ServerAliveCountMax 3" -R ${tunnel_port}:localhost:22 -M ${tunnel_monitor_port} node@${tunnel_server}
-
-	EOF
-
-	# start / restart the tunnel service
-	service goddardtunnel restart
-
-fi
-
-if [ -f /var/goddard/node.json ]
 	then
 
 		# set the running hostname
