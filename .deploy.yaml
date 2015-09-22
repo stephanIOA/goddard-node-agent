@@ -1,0 +1,5 @@
+name: goddard-node-agent
+buildscript: scripts/build.sh
+postinstall: scripts/postinstall.sh
+dependencies:
+    - git
