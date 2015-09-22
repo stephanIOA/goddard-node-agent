@@ -93,7 +93,7 @@ if [ ! -f /var/goddard/setup.lock ]; then
 				echo "Stopping running apps"
 
 				# done
-				echo "{\"build\":\"busy\",\"process\":\"Stopping all running apps\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+				echo "{\"build\":\"busy\",\"process\":\"Stopping $tkey\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
 
 				# post to server
 				curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
