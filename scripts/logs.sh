@@ -5,14 +5,19 @@ set -e
 current_timestamp=$(date +%Y%m%d%H%M%S)
 
 # delete any older logs
+if [ -d /var/log/staging ]
+    then
+        rm -R /var/log/staging || true
+fi
+
+if [ -d /var/log/output ]
+    then
+        rm -R /var/log/output || true
+fi
+
+# build a "staging" folder for the logs
 mkdir -p /var/log/staging/
 mkdir -p /var/log/output/
-
-# build a "staging" folder for the logs
-rm -R /var/log/staging/* || true
-
-# build a "staging" folder for the logs
-rm -R /var/log/output/* || true
 
 # sync up the logs for the node's nginx
 cp /var/log/nginx/*.log /var/log/staging/ || true
