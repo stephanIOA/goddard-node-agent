@@ -5,14 +5,13 @@ set -e
 current_timestamp=$(date +%Y%m%d%H%M%S)
 
 # delete any older logs
+if [ -d /var/log/staging ]
+    then
+        rm -R /var/log/staging || true
+fi
+
+# build a "staging" folder for the logs
 mkdir -p /var/log/staging/
-mkdir -p /var/log/output/
-
-# build a "staging" folder for the logs
-rm -R /var/log/staging/* || true
-
-# build a "staging" folder for the logs
-rm -R /var/log/output/* || true
 
 # sync up the logs for the node's nginx
 cp /var/log/nginx/*.log /var/log/staging/ || true
@@ -21,7 +20,8 @@ cp /var/log/nginx/*.log /var/log/staging/ || true
 # wget http://goddard.com/log -O /var/log/staging/clients.log || true
 
 # tar the folder
-cd /var/log/staging && tar -czf logs.tar.gz .
+cd /var/log/ && tar -czf logs.tar.gz ./staging
+mv /var/log/logs.tar.gz ./staging/
 
 # create the missing folder
 ssh node@hub.goddard.unicore.io mkdir -p /var/log/node/$(cat /var/goddard/node.json | jq -r '.uid')/$(date +%Y)/$(date +%m)/
@@ -40,6 +40,3 @@ kill -USR1 `cat /var/run/nginx.pid`
 
 # build a "staging" folder for the logs
 rm -R /var/log/staging/*
-
-# build a "staging" folder for the logs
-rm -R /var/log/output/*
