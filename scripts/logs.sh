@@ -26,7 +26,8 @@ cp /var/log/nginx/*.log /var/log/staging/ || true
 # wget http://goddard.com/log -O /var/log/staging/clients.log || true
 
 # tar the folder
-cd /var/log/staging && tar -czf logs.tar.gz .
+cd /var/log/ && tar -czf logs.tar.gz ./staging
+mv logs.tar.gz ./staging/
 
 # create the missing folder
 ssh node@hub.goddard.unicore.io mkdir -p /var/log/node/$(cat /var/goddard/node.json | jq -r '.uid')/$(date +%Y)/$(date +%m)/
