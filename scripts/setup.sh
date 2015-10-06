@@ -121,7 +121,7 @@ if [ ! -f /var/goddard/setup.lock ]; then
 						docker_command_str=${docker_command}
 					fi
 
-				cd /var/goddard/apps/$tkey && bash -c $docker_command
+				cd /var/goddard/apps/$tkey && bash -c $docker_command_str
 
 			fi
 
