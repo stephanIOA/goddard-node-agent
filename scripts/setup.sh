@@ -38,7 +38,7 @@ if [ ! -f /var/goddard/setup.lock ]; then
 
 		# check the diff first
 		DIFF=$(diff /var/goddard/apps.raw.json /var/goddard/apps.json | cat)
-		if [ "$DIFF" != "" ] 
+		if [ "$DIFF" != "" ]
 		then
 			nginx_reload_flag=1
 		fi
@@ -76,7 +76,7 @@ if [ ! -f /var/goddard/setup.lock ]; then
 
 				# mark as 'yes'
 				nginx_reload_flag=1
-				
+
 				# debug
 				echo "Building $tdomain"
 
@@ -112,7 +112,16 @@ if [ ! -f /var/goddard/setup.lock ]; then
 				echo "{\"build\":\"busy\",\"process\":\"Starting $tdomain\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
 
 				# start the app
-				cd /var/goddard/apps/$tkey && docker run --restart=always -p $tport:8080 -d $tkey
+				docker_command=`cat /var/goddard/apps.json | jq -r '.[] | select(.key == "$tkey") | .docker_command'`
+				if [ $docker_command = 'null' ]
+					then
+						docker_command_str="docker run --restart=always -p $tport:8080 -d $tkey"
+					else
+						# We evaluate the command against the current context
+						docker_command_str=${docker_command}
+					fi
+
+				cd /var/goddard/apps/$tkey && bash -c $docker_command_str
 
 			fi
 
@@ -120,7 +129,7 @@ if [ ! -f /var/goddard/setup.lock ]; then
 
 		# check if the exit code was a 1, so 0 ...
 		if [ "$nginx_reload_flag" = 1 ]; then
-	
+
 			# delete the old nginx conf
 			rm /etc/nginx/conf.d/*.conf || true
 
@@ -185,7 +194,7 @@ if [ ! -f /var/goddard/setup.lock ]; then
 
 		fi
 
-	else			
+	else
 
 		# done
 		echo "{\"build\":\"error\",\"process\":\"Parsing of app.json failed from hub server\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
