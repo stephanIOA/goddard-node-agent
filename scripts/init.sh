@@ -87,6 +87,25 @@ if [ ! -f /var/goddard/lock.cron ]
 
 	fi
 
+# run only if cron is not locked yet
+if [ ! -f /var/goddard/lock.media.cron ]
+	then
+
+	#write out current crontab
+	crontab -l > mycron
+
+	#echo new cron into cron file
+	echo "* */6 * * * cd /var/goddard/agent && pkill -15 -f sync.sh && chmod a+x scripts/sync.sh && ./scripts/sync.sh" >> mycron
+	
+	#install new cron file
+	crontab mycron
+	rm mycron
+
+	# lock the cron
+	date > /var/goddard/lock.media.cron
+
+	fi
+
 # ping router and only run if something is unconfigured
 ping -c 3 192.168.88.1 >/dev/null 2>&1
 if [ $? -eq 0 ]
