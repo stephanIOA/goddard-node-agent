@@ -103,7 +103,7 @@ if [ ! -f /var/goddard/setup.lock ]; then
 
 				# stop all the running apps
 				# docker kill $(docker ps -a -q | grep $tkey) || true
-				docker kill $(docker ps -a | awk '{ print $1,$2 }' | grep $tkey | awk '{print $1 }')
+				docker kill $(docker ps -a | awk '{ print $1,$2 }' | grep $tkey | awk '{print $1 }') || true
 
 				# start the app
 				echo "Starting $tdomain"
