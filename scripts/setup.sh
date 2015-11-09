@@ -10,6 +10,45 @@ if [ ! -f /var/goddard/setup.lock ]; then
 	echo `date` > /var/goddard/setup.lock
 
 	# done
+	echo "{\"build\":\"busy\",\"process\":\"Updating Node.JSON for the newest details\",\"timestamp\":\"$( date +%s )\"}" > /var/goddard/build.json
+
+	# post to server
+	curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
+
+	# get mac addres of network interface
+	read -r mac < /sys/class/net/eth0/address
+
+	# create the goddard folder if it doesn't exist
+	sudo mkdir -p /var/goddard/
+
+	# global permissions as this is quite open
+	sudo chmod -R 0777 /var/goddard/
+
+	###
+	# need to send:
+	# mac addres of eth0
+	# public ssh key
+	###
+	publickey=`cat /home/goddard/.ssh/id_rsa.pub`
+
+	# send HTTP POST - including tunnel info
+	curl -d "{\"mac\": \"${mac}\", \"key\": \"${publickey}\"}" -H "Content-Type: application/json" -X POST http://hub.goddard.unicore.io/setup.json > /var/goddard/node.raw.json
+
+	# check if the returned json was valid
+	eval cat /var/goddard/node.raw.json | jq -r '.'
+
+	# register the return code
+	ret_code=$?
+
+	# check the code, must be 0
+	if [ $ret_code = 0 ]; then
+
+		# move the json to live node details
+		mv /var/goddard/node.raw.json /var/goddard/node.json
+
+	fi
+
+	# done
 	echo "{\"build\":\"busy\",\"process\":\"Loading base image\",\"timestamp\":\"$( date +%s )\"}" > /var/goddard/build.json
 
 	# post to server
