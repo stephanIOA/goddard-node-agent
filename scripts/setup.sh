@@ -128,40 +128,6 @@ if [ ! -f /var/goddard/setup.lock ]; then
 				# build the app
 				cd /var/goddard/apps/$tkey && docker build --tag="$tkey" --rm=true .
 
-				# done
-				echo "Stopping running apps"
-
-				# done
-				echo "{\"build\":\"busy\",\"process\":\"Stopping $tkey\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-				# post to server
-				curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
-
-				# run the docker command
-				# docker ps -a -q | grep $tkey
-
-				# stop all the running apps
-				# docker kill $(docker ps -a -q | grep $tkey) || true
-				docker kill $(docker ps -a | awk '{ print $1,$2 }' | grep $tkey | awk '{print $1 }') || true
-
-				# start the app
-				echo "Starting $tdomain"
-
-				# done
-				echo "{\"build\":\"busy\",\"process\":\"Starting $tdomain\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-				# start the app
-				docker_command=`cat /var/goddard/apps.json | jq -r '.[] | select(.key == "$tkey") | .docker_command'`
-				if [ $docker_command = 'null' ]
-					then
-						docker_command_str="docker run --restart=always -p $tport:8080 -d $tkey"
-					else
-						# We evaluate the command against the current context
-						docker_command_str=${docker_command}
-					fi
-
-				cd /var/goddard/apps/$tkey && bash -c $docker_command_str
-
 			fi
 
 		done < /var/goddard/apps.keys.txt
@@ -230,6 +196,48 @@ if [ ! -f /var/goddard/setup.lock ]; then
 
 			# restart nginx
 			service nginx reload || true
+
+		fi
+
+		# check if the exit code was a 1, so 0 ...
+		if [ "$nginx_reload_flag" = 1 ]; then
+
+			# done
+			echo "Stopping running apps"
+
+			# done
+			echo "{\"build\":\"busy\",\"process\":\"Stopping $tkey\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+
+			# post to server
+			curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
+
+			# stop all the running apps
+			# docker kill $(docker ps -a -q | grep $tkey) || true
+			docker kill $(docker ps -a | awk '{ print $1,$2 }') || true
+
+			# cool so now we have the keys
+			while read tkey tdomain tport
+			do
+
+				# start the app
+				echo "Starting $tdomain"
+
+				# done
+				echo "{\"build\":\"busy\",\"process\":\"Starting $tdomain\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+
+				# start the app
+				docker_command=`cat /var/goddard/apps.json | jq -r '.[] | select(.key == "$tkey") | .docker_command'`
+				if [ $docker_command = 'null' ]
+					then
+						docker_command_str="docker run --restart=always -p $tport:8080 -d $tkey"
+					else
+						# We evaluate the command against the current context
+						docker_command_str=${docker_command}
+					fi
+
+				cd /var/goddard/apps/$tkey && bash -c $docker_command_str
+
+			done < /var/goddard/apps.keys.txt
 
 		fi
 
