@@ -213,7 +213,8 @@ if [ ! -f /var/goddard/setup.lock ]; then
 
 			# stop all the running apps
 			# docker kill $(docker ps -a -q | grep $tkey) || true
-			docker kill $(docker ps -a | awk '{ print $1,$2 }') || true
+			docker stop $(docker ps -a -q) || true
+			docker kill $(docker ps -a -q) || true
 
 			# cool so now we have the keys
 			while read tkey tdomain tport
@@ -227,7 +228,7 @@ if [ ! -f /var/goddard/setup.lock ]; then
 
 				# start the app
 				docker_command=`cat /var/goddard/apps.json | jq -r '.[] | select(.key == "$tkey") | .docker_command'`
-				if [ $docker_command = 'null' ]
+				if [ "$docker_command" = "" ]
 					then
 						docker_command_str="docker run --restart=always -p $tport:8080 -d $tkey"
 					else
@@ -235,7 +236,10 @@ if [ ! -f /var/goddard/setup.lock ]; then
 						docker_command_str=${docker_command}
 					fi
 
-				cd /var/goddard/apps/$tkey && bash -c $docker_command_str
+					echo "COMMAND WE ARE SENDING DOCKER"
+					echo $docker_command_str
+
+				cd /var/goddard/apps/$tkey && bash -c "$docker_command_str"
 
 			done < /var/goddard/apps.keys.txt
 
