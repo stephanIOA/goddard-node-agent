@@ -227,19 +227,7 @@ if [ ! -f /var/goddard/setup.lock ]; then
 				echo "{\"build\":\"busy\",\"process\":\"Starting $tdomain\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
 
 				# start the app
-				docker_command=`cat /var/goddard/apps.json | jq -r '.[] | select(.key == "$tkey") | .docker_command'`
-				if [ "$docker_command" = "" ]
-					then
-						docker_command_str="docker run --restart=always -p $tport:8080 -d $tkey"
-					else
-						# We evaluate the command against the current context
-						docker_command_str=${docker_command}
-					fi
-
-					echo "COMMAND WE ARE SENDING DOCKER"
-					echo $docker_command_str
-
-				cd /var/goddard/apps/$tkey && bash -c "$docker_command_str"
+				docker run --restart=always -p $tport:8080 -d $tkey
 
 			done < /var/goddard/apps.keys.txt
 
