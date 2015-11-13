@@ -185,6 +185,41 @@ if [ ! -f /var/goddard/setup.lock ]; then
 
 		fi
 
+		# cool so now we have the keys
+		while read tkey tdomain tport
+		do
+
+			# debug
+			echo "Sanity Check if $tkey is actually running"
+
+			# done
+			echo "{\"build\":\"busy\",\"process\":\"Making sure $tkey is actually running\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+
+			# post to server
+			curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
+
+			# get the running apps
+			running_app_container=$(docker ps -a -q | grep $tkey)
+
+			# check the amount changed files
+			if [ "$running_app_container" = "" ]; then
+
+				# make sure we are not double staring a container
+				docker kill $(docker ps -a | awk '{ print $1,$2 }' | grep $tkey | awk '{print $1 }')
+
+				# start the app
+				echo "Starting $tkey as it was not running"
+
+				# done
+				echo "{\"build\":\"busy\",\"process\":\"Starting $tkey as it was not running\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+
+				# start the app
+				docker run --restart=always -p $tport:8080 -d $tkey
+
+			fi
+
+		done < /var/goddard/apps.keys.txt
+
 	else
 
 		# done
