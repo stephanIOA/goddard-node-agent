@@ -199,13 +199,13 @@ if [ ! -f /var/goddard/setup.lock ]; then
 			curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
 
 			# get the running apps
-			running_app_container=$(docker ps -a -q | grep $tkey)
+			running_app_container=$(docker ps | grep $tkey) || true
 
 			# check the amount changed files
 			if [ "$running_app_container" = "" ]; then
 
 				# make sure we are not double staring a container
-				docker kill $(docker ps -a | awk '{ print $1,$2 }' | grep $tkey | awk '{print $1 }')
+				docker kill $(docker ps -a | awk '{ print $1,$2 }' | grep $tkey | awk '{print $1 }') || true
 
 				# start the app
 				echo "Starting $tkey as it was not running"
