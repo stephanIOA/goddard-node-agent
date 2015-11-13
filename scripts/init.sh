@@ -113,6 +113,25 @@ if [ ! -f /var/goddard/lock.cron ]
 
 	fi
 
+# run only if cron is not locked yet
+if [ ! -f /var/goddard/agenysync.cron ]
+	then
+
+	#write out current crontab
+	crontab -l > mycron
+
+	#echo new cron into cron file
+	echo "* */24 * * * cd /var/goddard/agent && pkill -15 -f update.sh || true && chmod a+x scripts/update.sh && ./scripts/update.sh" >> mycron
+
+	#install new cron file
+	crontab mycron
+	rm mycron
+
+	# lock the cron
+	date > /var/goddard/agenysync.cron
+
+	fi
+
 # ping router and only run if something is unconfigured
 ping -c 3 192.168.88.1 >/dev/null 2>&1
 if [ $? -eq 0 ]
