@@ -185,6 +185,57 @@ if [ ! -f /var/goddard/setup.lock ]; then
 
 		fi
 
+		# done
+		echo "{\"build\":\"busy\",\"process\":\"\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+
+		# update in file
+		running_docker_status=$(docker ps)
+
+		# clean up the docker output
+		cleaned_docker_status=$(echo $running_docker_status | sed -r 's/[\"]+/\\\"/g')
+		# cleaned_docker_status=$(python2 -c 'import sys, urllib; print urllib.quote(sys.argv[1])' "$running_docker_status")
+
+		# done
+		echo "{\"build\":\"busy\",\"process\":\"Output from Docker: ${cleaned_docker_status}\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+
+		# post to server
+		curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
+
+		# cool so now we have the keys
+		while read tkey tdomain tport
+		do
+
+			# debug
+			echo "Sanity Check if $tkey is actually running"
+
+			# done
+			echo "{\"build\":\"busy\",\"process\":\"Making sure $tkey is actually running\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+
+			# post to server
+			curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
+
+			# get the running apps
+			running_app_container=$(docker ps | grep $tkey) || true
+
+			# check the amount changed files
+			if [ "$running_app_container" = "" ]; then
+
+				# make sure we are not double staring a container
+				docker kill $(docker ps -a | awk '{ print $1,$2 }' | grep $tkey | awk '{print $1 }') || true
+
+				# start the app
+				echo "Starting $tkey as it was not running"
+
+				# done
+				echo "{\"build\":\"busy\",\"process\":\"Starting $tkey as it was not running\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+
+				# start the app
+				docker run --restart=always -p $tport:8080 -d $tkey
+
+			fi
+
+		done < /var/goddard/apps.keys.txt
+
 	else
 
 		# done
