@@ -185,6 +185,22 @@ if [ ! -f /var/goddard/setup.lock ]; then
 
 		fi
 
+		# done
+		echo "{\"build\":\"busy\",\"process\":\"\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+
+		# update in file
+		running_docker_status=$(docker ps)
+
+		# clean up the docker output
+		cleaned_docker_status=$(echo $running_docker_status | sed -r 's/[\"]+/\\\"/g')
+		# cleaned_docker_status=$(python2 -c 'import sys, urllib; print urllib.quote(sys.argv[1])' "$running_docker_status")
+
+		# done
+		echo "{\"build\":\"busy\",\"process\":\"Output from Docker: ${cleaned_docker_status}\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+
+		# post to server
+		curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
+
 		# cool so now we have the keys
 		while read tkey tdomain tport
 		do
