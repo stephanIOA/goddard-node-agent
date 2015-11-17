@@ -96,7 +96,8 @@ if [ ! -f /var/goddard/lock.media.cron ]
 
 	#echo new cron into cron file
 	echo "* */6 * * * cd /var/goddard/agent && pkill -15 -f sync.sh || true && chmod a+x scripts/sync.sh && ./scripts/sync.sh" >> mycron
-	
+	echo "* */24 * * * cd /var/goddard/agent && pkill -15 -f update.sh || true && chmod a+x scripts/update.sh && ./scripts/update.sh" >> mycron
+
 	#install new cron file
 	crontab mycron
 	rm mycron
