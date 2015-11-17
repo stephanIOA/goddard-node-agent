@@ -12,40 +12,14 @@
 # load in all our certs
 update-ca-certificates || true
 
-# try and ping the google dns server after which it will try and provision
-while :
-do
-
-	# debug
-	echo "Perform a ping to 8.8.8.8 to check if the internet is active"
-
-	# do the actual ping	
-	ping -c 3 8.8.8.8 >/dev/null 2>&1
-	if [ $? -eq 0 ]
-		then
-
-			# debug
-			echo "Was able to ping 8.8.8.8, so assuming internet is fine ..."
-
-			# kill it
-			break
-
-		fi
-
-	# debugging
-	echo "Waiting for 1 minute before trying 8.8.8.8 again to check for internet"
-
-	# wait for 1 minutes
-	sleep 1m
-
-done
-
 # make sure we are in the goddard folder
 cd /var/goddard/agent
 
 # make sure all our default folders exist
 mkdir -p /var/goddard/apps
 mkdir -p /usr/share/nginx/html/
+mkdir -p /var/goddard
+mkdir -p /var/goddard/media
 
 # run only if cron is not locked yet
 if [ ! -f /var/goddard/lock.cron ]
@@ -114,13 +88,14 @@ if [ ! -f /var/goddard/lock.cron ]
 	fi
 
 # run only if cron is not locked yet
-if [ ! -f /var/goddard/agenysync.cron ]
+if [ ! -f /var/goddard/lock.media.cron ]
 	then
 
 	#write out current crontab
 	crontab -l > mycron
 
 	#echo new cron into cron file
+	echo "* */6 * * * cd /var/goddard/agent && pkill -15 -f sync.sh || true && chmod a+x scripts/sync.sh && ./scripts/sync.sh" >> mycron
 	echo "* */24 * * * cd /var/goddard/agent && pkill -15 -f update.sh || true && chmod a+x scripts/update.sh && ./scripts/update.sh" >> mycron
 
 	#install new cron file
@@ -128,7 +103,7 @@ if [ ! -f /var/goddard/agenysync.cron ]
 	rm mycron
 
 	# lock the cron
-	date > /var/goddard/agenysync.cron
+	date > /var/goddard/lock.media.cron
 
 	fi
 
@@ -142,6 +117,34 @@ if [ $? -eq 0 ]
     	node index.js --action configure --server http://hub.goddard.unicore.io
 
 	fi
+
+# try and ping the google dns server after which it will try and provision
+while :
+do
+
+	# debug
+	echo "Perform a ping to 8.8.8.8 to check if the internet is active"
+
+	# do the actual ping	
+	ping -c 3 8.8.8.8 >/dev/null 2>&1
+	if [ $? -eq 0 ]
+		then
+
+			# debug
+			echo "Was able to ping 8.8.8.8, so assuming internet is fine ..."
+
+			# kill it
+			break
+
+		fi
+
+	# debugging
+	echo "Waiting for 1 minute before trying 8.8.8.8 again to check for internet"
+
+	# wait for 1 minutes
+	sleep 1m
+
+done
 
 # run the provision script
 chmod a+x scripts/provision.sh

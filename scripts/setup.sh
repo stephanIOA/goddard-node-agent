@@ -10,6 +10,45 @@ if [ ! -f /var/goddard/setup.lock ]; then
 	echo `date` > /var/goddard/setup.lock
 
 	# done
+	echo "{\"build\":\"busy\",\"process\":\"Updating Node.JSON for the newest details\",\"timestamp\":\"$( date +%s )\"}" > /var/goddard/build.json
+
+	# post to server
+	curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
+
+	# get mac addres of network interface
+	read -r mac < /sys/class/net/eth0/address
+
+	# create the goddard folder if it doesn't exist
+	sudo mkdir -p /var/goddard/
+
+	# global permissions as this is quite open
+	sudo chmod -R 0777 /var/goddard/
+
+	###
+	# need to send:
+	# mac addres of eth0
+	# public ssh key
+	###
+	publickey=`cat /home/goddard/.ssh/id_rsa.pub`
+
+	# send HTTP POST - including tunnel info
+	curl -d "{\"mac\": \"${mac}\", \"key\": \"${publickey}\"}" -H "Content-Type: application/json" -X POST http://hub.goddard.unicore.io/setup.json > /var/goddard/node.raw.json
+
+	# check if the returned json was valid
+	eval cat /var/goddard/node.raw.json | jq -r '.'
+
+	# register the return code
+	ret_code=$?
+
+	# check the code, must be 0
+	if [ $ret_code = 0 ]; then
+
+		# move the json to live node details
+		mv /var/goddard/node.raw.json /var/goddard/node.json
+
+	fi
+
+	# done
 	echo "{\"build\":\"busy\",\"process\":\"Loading base image\",\"timestamp\":\"$( date +%s )\"}" > /var/goddard/build.json
 
 	# post to server
@@ -185,56 +224,81 @@ if [ ! -f /var/goddard/setup.lock ]; then
 
 		fi
 
-		# done
-		echo "{\"build\":\"busy\",\"process\":\"\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-		# update in file
-		running_docker_status=$(docker ps)
-
-		# clean up the docker output
-		cleaned_docker_status=$(echo $running_docker_status | sed -r 's/[\"]+/\\\"/g')
-		# cleaned_docker_status=$(python2 -c 'import sys, urllib; print urllib.quote(sys.argv[1])' "$running_docker_status")
-
-		# done
-		echo "{\"build\":\"busy\",\"process\":\"Output from Docker: ${cleaned_docker_status}\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-		# post to server
-		curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
-
-		# cool so now we have the keys
-		while read tkey tdomain tport
-		do
-
-			# debug
-			echo "Sanity Check if $tkey is actually running"
+		# check if the exit code was a 1, so 0 ...
+		if [ "$nginx_reload_flag" = 1 ]; then
 
 			# done
-			echo "{\"build\":\"busy\",\"process\":\"Making sure $tkey is actually running\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+			echo "Stopping running apps"
+
+			# done
+			echo "{\"build\":\"busy\",\"process\":\"Stopping $tkey\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+
+			# update in file
+			running_docker_status=$(docker ps)
+
+			# clean up the docker output
+			cleaned_docker_status=$(echo -n "$running_docker_status" | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+			# cleaned_docker_status=$(python2 -c 'import sys, urllib; print urllib.quote(sys.argv[1])' "$running_docker_status")
+
+			# done
+			echo "{\"build\":\"busy\",\"process\":\"Output from Docker: ${cleaned_docker_status}\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
 
 			# post to server
 			curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
 
-			# get the running apps
-			running_app_container=$(docker ps | grep $tkey) || true
+			# cool so now we have the keys
+			while read tkey tdomain tport
+			do
 
-			# check the amount changed files
-			if [ "$running_app_container" = "" ]; then
-
-				# make sure we are not double staring a container
-				docker kill $(docker ps -a | awk '{ print $1,$2 }' | grep $tkey | awk '{print $1 }') || true
-
-				# start the app
-				echo "Starting $tkey as it was not running"
+				# debug
+				echo "Sanity Check if $tkey is actually running"
 
 				# done
-				echo "{\"build\":\"busy\",\"process\":\"Starting $tkey as it was not running\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+				echo "{\"build\":\"busy\",\"process\":\"Making sure $tkey is actually running\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
 
-				# start the app
-				docker run --restart=always -p $tport:8080 -d $tkey
+				# post to server
+				curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
 
-			fi
+				# stop all the running apps
+				# docker kill $(docker ps -a -q | grep $tkey) || true
+				docker stop $(docker ps -a -q) || true
+				docker kill $(docker ps -a -q) || true
 
-		done < /var/goddard/apps.keys.txt
+				# cool so now we have the keys
+				while read tkey tdomain tport
+				do
+
+					# start the app
+					echo "Starting $tdomain"
+
+					# done
+					echo "{\"build\":\"busy\",\"process\":\"Starting $tdomain\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+
+					# get the running apps
+					running_app_container=$(docker ps | grep $tkey) || true
+
+					# check the amount changed files
+					if [ "$running_app_container" = "" ]; then
+
+						# make sure we are not double staring a container
+						docker kill $(docker ps -a | awk '{ print $1,$2 }' | grep $tkey | awk '{print $1 }') || true
+
+						# start the app
+						echo "Starting $tkey as it was not running"
+
+						# done
+						echo "{\"build\":\"busy\",\"process\":\"Starting $tkey as it was not running\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
+
+						# start the app
+						docker run --restart=always -p $tport:8080 -d $tkey
+
+					fi
+
+					done < /var/goddard/apps.keys.txt
+
+			done < /var/goddard/apps.keys.txt
+
+		fi
 
 	else
 
