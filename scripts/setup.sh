@@ -12,6 +12,7 @@ APPS_JSON_PATH="${GODDARD_BASE_PATH}/apps.json"
 APPS_JSON_RAW_PATH="${GODDARD_BASE_PATH}/apps.raw.json"
 APPS_KEYS_TXT_PATH="${GODDARD_BASE_PATH}/apps.keys.txt"
 NGINX_CONFD_PATH="/etc/nginx/conf.d"
+HUB_GODDARD_UNICORE="hub.goddard.unicore.io/"
 
 NEW_VIRTUAL_HOST() {
 	local VIRTUAL_HOST_PATH="${1}"
@@ -52,7 +53,7 @@ POST_TO_SERVER() {
 	curl \
 		-X POST \
 		-d "@${BUILD_JSON_PATH}" \
-		"http://hub.goddard.unicore.io/report.json?uid=${NODE_UID}" \
+		"http://${HUB_GODDARD_UNICORE}/report.json?uid=${NODE_UID}" \
 		--header "Content-Type: application/json"
 	echo ""
 }
@@ -63,7 +64,7 @@ POST_TUNNELING_INFO_TO_SERVER() {
 	curl \
 		-X POST \
 		-d "{\"mac\": \"${MAC_ADDRESS}\", \"key\": \"${PUBLIC_KEY}\"}" \
-		http://hub.goddard.unicore.io/setup.json > "${NODE_JSON_RAW_PATH}" \
+		"http://${HUB_GODDARD_UNICORE}/setup.json" > "${NODE_JSON_RAW_PATH}" \
 		--header "Content-Type: application/json"
 	echo ""
 }
@@ -118,12 +119,14 @@ POST_TUNNELING_INFO_TO_SERVER
 eval jq -r '.' < "${NODE_JSON_RAW_PATH}"
 JQ_RETURN_CODE="${?}"
 
-if [[ "${JQ_RETURN_CODE}" == "0" ]]; then mv "/var/goddard/node.raw.json" "/var/goddard/node.json"; fi
+if [[ "${JQ_RETURN_CODE}" == "0" ]]; then 
+	mv "${NODE_JSON_RAW_PATH}" "${NODE_JSON_PATH}"
+fi
 
 POST_BUILD_JSON_BUSY "Loading base image"
 docker load < "${GODDARD_BASE_PATH}/node.img.tar" || true
 POST_BUILD_JSON_BUSY "Downloading app list for node..."
-curl "http://hub.goddard.unicore.io/apps.json?uid=$(jq -r '.uid' < "${NODE_JSON_PATH}")" > "${APPS_JSON_RAW_PATH}"
+curl "http://${HUB_GODDARD_UNICORE}/apps.json?uid=$(jq -r '.uid' < "${NODE_JSON_PATH}")" > "${APPS_JSON_RAW_PATH}"
 CURL_RET_CODE="${?}"
 
 if [[ "${CURL_RET_CODE}" != "0" ]]; then
@@ -145,7 +148,7 @@ docker kill $(docker ps -q) || true
 
 while read TKEY TDOMAIN TPORT; do
 	POST_BUILD_JSON_BUSY "Downloading application ${TDOMAIN}"
-	echo "diff size: $(rsync -aPzri --progress "node@hub.goddard.unicore.io:${GODDARD_APPS_BASE_PATH}/${TKEY}/" "${GODDARD_APPS_BASE_PATH}/${TKEY}" | wc -l)"
+	echo "diff size: $(rsync -aPzri --progress "node@${HUB_GODDARD_UNICORE}:${GODDARD_APPS_BASE_PATH}/${TKEY}/" "${GODDARD_APPS_BASE_PATH}/${TKEY}" | wc -l)"
 	POST_BUILD_JSON_BUSY "Building ${TDOMAIN}"
 	cd "${GODDARD_APPS_BASE_PATH}/${TKEY}" && docker build --tag="${TKEY}" --rm=true "."
 	POST_BUILD_JSON_BUSY "Stopping ${TKEY}"
