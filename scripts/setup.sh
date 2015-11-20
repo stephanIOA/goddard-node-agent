@@ -12,7 +12,7 @@ APPS_JSON_PATH="${GODDARD_BASE_PATH}/apps.json"
 APPS_JSON_RAW_PATH="${GODDARD_BASE_PATH}/apps.raw.json"
 APPS_KEYS_TXT_PATH="${GODDARD_BASE_PATH}/apps.keys.txt"
 NGINX_CONFD_PATH="/etc/nginx/conf.d"
-HUB_GODDARD_UNICORE="hub.goddard.unicore.io/"
+HUB_GODDARD_UNICORE="hub.goddard.unicore.io"
 
 NEW_VIRTUAL_HOST() {
 	local VIRTUAL_HOST_PATH="${1}"
