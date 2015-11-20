@@ -1,328 +1,179 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 set -e
-# double check folder
-mkdir -p /var/goddard
 
-# check for a lock
-if [ ! -f /var/goddard/setup.lock ]; then
-
-	# write the lock
-	echo `date` > /var/goddard/setup.lock
-
-	# done
-	echo "{\"build\":\"busy\",\"process\":\"Updating Node.JSON for the newest details\",\"timestamp\":\"$( date +%s )\"}" > /var/goddard/build.json
-
-	# post to server
-	curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
-
-	# get mac addres of network interface
-	read -r mac < /sys/class/net/eth0/address
-
-	# create the goddard folder if it doesn't exist
-	sudo mkdir -p /var/goddard/
-
-	# global permissions as this is quite open
-	sudo chmod -R 0777 /var/goddard/
-
-	###
-	# need to send:
-	# mac addres of eth0
-	# public ssh key
-	###
-	publickey=`cat /home/goddard/.ssh/id_rsa.pub`
-
-	# send HTTP POST - including tunnel info
-	curl -d "{\"mac\": \"${mac}\", \"key\": \"${publickey}\"}" -H "Content-Type: application/json" -X POST http://hub.goddard.unicore.io/setup.json > /var/goddard/node.raw.json
-
-	# check if the returned json was valid
-	eval cat /var/goddard/node.raw.json | jq -r '.'
-
-	# register the return code
-	ret_code=$?
-
-	# check the code, must be 0
-	if [ $ret_code = 0 ]; then
-
-		# move the json to live node details
-		mv /var/goddard/node.raw.json /var/goddard/node.json
-
-	fi
-
-	# done
-	echo "{\"build\":\"busy\",\"process\":\"Loading base image\",\"timestamp\":\"$( date +%s )\"}" > /var/goddard/build.json
-
-	# post to server
-	curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
-
-	# load in the docker image
-	docker load < /var/goddard/node.img.tar || true
-
-	# done
-	echo "{\"build\":\"busy\",\"process\":\"Downloading app list for node ...\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-	# post to server
-	curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
-
-	# reload flag
-	nginx_reload_flag=0
-
-	# read in all the apps from the server
-	curl "http://hub.goddard.unicore.io/apps.json?uid=$(cat /var/goddard/node.json | jq -r '.uid')" > /var/goddard/apps.raw.json
-
-	# register the return code
-	ret_code=$?
-
-	# check the code, must be 0
-	if [ $ret_code = 0 ]; then
-
-		# check the diff first
-		DIFF=$(diff /var/goddard/apps.raw.json /var/goddard/apps.json | cat)
-		if [ "$DIFF" != "" ]
-		then
-			nginx_reload_flag=1
-		fi
-
-		# move the json to live node details
-		mv /var/goddard/apps.raw.json /var/goddard/apps.json
-
-		# done
-		echo "{\"build\":\"busy\",\"process\":\"Downloaded app list for node ...\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-		# post to server
-		curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
-
-		# awesome start a deploy
-		cat /var/goddard/apps.json | jq -r '.[]  | "\(.key) \(.domain) \(.port)"' > /var/goddard/apps.keys.txt
-
-		# cool so now we have the keys
-		while read tkey tdomain tport
-		do
-
-			# debug
-			echo "Downloading application $tdomain"
-
-			# done
-			echo "{\"build\":\"busy\",\"process\":\"Downloading application $tdomain\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-			# post to server
-			curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
-
-			# sync down the code
-			amount=$(rsync -aPzri --progress node@hub.goddard.unicore.io:/var/goddard/apps/$tkey/ /var/goddard/apps/$tkey | wc -l)
-
-			# check the amount changed files
-			if [ "$amount" -gt 1 ]; then
-
-				# mark as 'yes'
-				nginx_reload_flag=1
-
-				# debug
-				echo "Building $tdomain"
-
-				# done
-				echo "{\"build\":\"busy\",\"process\":\"Building $tdomain\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-				# post to server
-				curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
-
-				# build the app
-				cd /var/goddard/apps/$tkey && docker build --tag="$tkey" --rm=true .
-
-				# done
-				echo "Stopping running apps"
-
-				# done
-				echo "{\"build\":\"busy\",\"process\":\"Stopping $tkey\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-				# post to server
-				curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
-
-				# run the docker command
-				# docker ps -a -q | grep $tkey
-
-				# stop all the running apps
-				# docker kill $(docker ps -a -q | grep $tkey) || true
-				docker kill $(docker ps -a | awk '{ print $1,$2 }' | grep $tkey | awk '{print $1 }')
-
-				# start the app
-				echo "Starting $tdomain"
-
-				# done
-				echo "{\"build\":\"busy\",\"process\":\"Starting $tdomain\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-				# start the app
-				docker run --restart=always -p $tport:8080 -d $tkey
-
-			fi
-
-		done < /var/goddard/apps.keys.txt
-
-		# check if the exit code was a 1, so 0 ...
-		if [ "$nginx_reload_flag" = 1 ]; then
-
-			# delete the old nginx conf
-			rm /etc/nginx/conf.d/*.conf || true
-
-			# write default config
-			cat /var/goddard/agent/templates/unknown.html > /var/goddard/index.html
-			cat /var/goddard/agent/templates/nginx.static.conf > /etc/nginx/conf.d/default.conf
-
-			# cool so now we have the keys
-			while read tkey tdomain tport
-			do
-				# done
-				echo "Adding $tdomain web server config"
-
-				# done
-				echo "{\"build\":\"busy\",\"process\":\"Adding $tdomain web server config\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-				# post to server
-				curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
-
-				# write out the service file
-				sudo cat <<-EOF > /etc/nginx/conf.d/$tdomain.conf
-
-					server {
-
-						listen                          80;
-						server_name                     $tdomain;
-						access_log                      /var/log/nginx/${tkey}.access.log;
-						error_log                       /var/log/nginx/${tkey}.error.log;
-
-						location / {
-
-							proxy_pass                  http://127.0.0.1:${tport}\$request_uri;
-							proxy_redirect              off;
-
-							proxy_set_header            Host             \$host;
-							proxy_set_header            X-Real-IP        \$remote_addr;
-							proxy_set_header            X-Forwarded-For  \$proxy_add_x_forwarded_for;
-							proxy_max_temp_file_size    0;
-
-							client_max_body_size        10m;
-							client_body_buffer_size     128k;
-
-							proxy_connect_timeout       120;
-							proxy_send_timeout          1200;
-							proxy_read_timeout          120;
-
-							proxy_buffer_size           128k;
-							proxy_buffers               4 256k;
-							proxy_busy_buffers_size     256k;
-							proxy_temp_file_write_size  256k;
-
-						}
-
-					}
-
-				EOF
-
-			done < /var/goddard/apps.keys.txt
-
-			# restart nginx
-			service nginx reload || true
-
-		fi
-
-		# check if the exit code was a 1, so 0 ...
-		if [ "$nginx_reload_flag" = 1 ]; then
-
-			# done
-			echo "Stopping running apps"
-
-			# done
-			echo "{\"build\":\"busy\",\"process\":\"Stopping $tkey\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-			# update in file
-			running_docker_status=$(docker ps)
-
-			# clean up the docker output
-			cleaned_docker_status=$(echo -n "$running_docker_status" | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
-			# cleaned_docker_status=$(python2 -c 'import sys, urllib; print urllib.quote(sys.argv[1])' "$running_docker_status")
-
-			# done
-			echo "{\"build\":\"busy\",\"process\":\"Output from Docker: ${cleaned_docker_status}\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-			# post to server
-			curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
-
-			# cool so now we have the keys
-			while read tkey tdomain tport
-			do
-
-				# debug
-				echo "Sanity Check if $tkey is actually running"
-
-				# done
-				echo "{\"build\":\"busy\",\"process\":\"Making sure $tkey is actually running\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-				# post to server
-				curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
-
-				# stop all the running apps
-				# docker kill $(docker ps -a -q | grep $tkey) || true
-				docker stop $(docker ps -a -q) || true
-				docker kill $(docker ps -a -q) || true
-
-				# cool so now we have the keys
-				while read tkey tdomain tport
-				do
-
-					# start the app
-					echo "Starting $tdomain"
-
-					# done
-					echo "{\"build\":\"busy\",\"process\":\"Starting $tdomain\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-					# get the running apps
-					running_app_container=$(docker ps | grep $tkey) || true
-
-					# check the amount changed files
-					if [ "$running_app_container" = "" ]; then
-
-						# make sure we are not double staring a container
-						docker kill $(docker ps -a | awk '{ print $1,$2 }' | grep $tkey | awk '{print $1 }') || true
-
-						# start the app
-						echo "Starting $tkey as it was not running"
-
-						# done
-						echo "{\"build\":\"busy\",\"process\":\"Starting $tkey as it was not running\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-						# start the app
-						docker run --restart=always -p $tport:8080 -d $tkey
-
-					fi
-
-					done < /var/goddard/apps.keys.txt
-
-			done < /var/goddard/apps.keys.txt
-
-		fi
-
-	else
-
-		# done
-		echo "{\"build\":\"error\",\"process\":\"Parsing of app.json failed from hub server\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-		# post to server
-		curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
-
-		# debugging to tell us why
-		echo "The json parsing test failed, server returned invalid JSON, the test was done on /var/goddard/apps.raw.json"
-
-		# stop the process
-		exit 1
-
-	fi
-
-	# done
-	echo "{\"build\":\"done\",\"process\":\"Done\",\"timestamp\":\"$( date +%s )\"}"  > /var/goddard/build.json
-
-	# post to server
-	curl -X POST -d @/var/goddard/build.json http://hub.goddard.unicore.io/report.json?uid=$(cat /var/goddard/node.json | jq -r '.uid') --header "Content-Type:application/json"
-
-	# kill the lock
-	rm /var/goddard/setup.lock || true
-
+GODDARD_BASE_PATH="/var/goddard"
+GODDARD_APPS_BASE_PATH="${GODDARD_BASE_PATH}/apps"
+LOCK_FILE_PATH="${GODDARD_BASE_PATH}/setup.lock"
+BUILD_JSON_PATH="${GODDARD_BASE_PATH}/build.json"
+NODE_JSON_PATH="${GODDARD_BASE_PATH}/node.json"
+NODE_JSON_RAW_PATH="${GODDARD_BASE_PATH}/node.raw.json"
+APPS_JSON_PATH="${GODDARD_BASE_PATH}/apps.json"
+APPS_JSON_RAW_PATH="${GODDARD_BASE_PATH}/apps.raw.json"
+APPS_KEYS_TXT_PATH="${GODDARD_BASE_PATH}/apps.keys.txt"
+NGINX_CONFD_PATH="/etc/nginx/conf.d"
+
+NEW_VIRTUAL_HOST() {
+	local VIRTUAL_HOST_PATH="${1}"
+	local TDOMAIN="${2}"
+	local TKEY="${3}"
+	local TPORT="${4}"
+
+	sudo cat <<-EOF > ${VIRTUAL_HOST_PATH}
+		server {
+			listen                        80;
+			server_name                   ${TDOMAIN};
+			access_log                    /var/log/nginx/${TKEY}.access.log;
+			error_log                     /var/log/nginx/${TKEY}.error.log;
+			location / {
+				proxy_pass                  http://127.0.0.1:${TPORT}\$request_uri;
+				proxy_redirect              off;
+				proxy_set_header            Host             \$host;
+				proxy_set_header            X-Real-IP        \$remote_addr;
+				proxy_set_header            X-Forwarded-For  \$proxy_add_x_forwarded_for;
+				proxy_max_temp_file_size    0;
+				client_max_body_size        10m;
+				client_body_buffer_size     128k;
+				proxy_connect_timeout       120;
+				proxy_send_timeout          1200;
+				proxy_read_timeout          120;
+				proxy_buffer_size           128k;
+				proxy_buffers               4 256k;
+				proxy_busy_buffers_size     256k;
+				proxy_temp_file_write_size  256k;
+			}
+		}
+	EOF
+}
+
+POST_TO_SERVER() {
+	declare NODE_UID
+	NODE_UID=$(jq -r '.uid' < "${NODE_JSON_PATH}")
+	curl \
+		-X POST \
+		-d "@${BUILD_JSON_PATH}" \
+		"http://hub.goddard.unicore.io/report.json?uid=${NODE_UID}" \
+		--header "Content-Type: application/json"
+	echo ""
+}
+
+POST_TUNNELING_INFO_TO_SERVER() {
+	PUBLIC_KEY=$(cat "/home/goddard/.ssh/id_rsa.pub")
+	read -r MAC_ADDRESS < "/sys/class/net/eth0/address"
+	curl \
+		-X POST \
+		-d "{\"mac\": \"${MAC_ADDRESS}\", \"key\": \"${PUBLIC_KEY}\"}" \
+		http://hub.goddard.unicore.io/setup.json > "${NODE_JSON_RAW_PATH}" \
+		--header "Content-Type: application/json"
+	echo ""
+}
+
+POST_BUILD_JSON_BUSY() {
+	local PROCESS="${1}"
+	echo "${PROCESS}"
+	echo "{
+		\"build\": \"busy\",
+		\"process\": \"${PROCESS}\",
+		\"timestamp\": \"$(date +%s)\"
+	}" > "${BUILD_JSON_PATH}"
+	POST_TO_SERVER
+}
+
+POST_BUILD_JSON_ERROR() {
+	local ERROR="${1}"
+	echo "${ERROR}"
+	echo "{
+		\"build\": \"error\",
+		\"process\": \"${ERROR}\",
+		\"timestamp\": \"$(date +%s)\"
+	}" > "${BUILD_JSON_PATH}"
+	POST_TO_SERVER
+}
+
+POST_BUILD_JSON_DONE() {
+	echo "{
+		\"build\": \"done\",
+		\"process\": \"Done\",
+		\"timestamp\": \"$(date +%s)\"
+	}" > "${BUILD_JSON_PATH}"
+	POST_TO_SERVER
+}
+
+WRITE_SETUP_LOCK() {
+	date > "${LOCK_FILE_PATH}"
+}
+
+UNLINK_SETUP_LOCK() {
+	rm "${LOCK_FILE_PATH}" || true
+}
+
+sudo mkdir -p "${GODDARD_BASE_PATH}"
+
+if [[ -f "${LOCK_FILE_PATH}" ]]; then exit 1; fi
+
+WRITE_SETUP_LOCK
+POST_BUILD_JSON_BUSY "Updating node.json with the latest details"
+sudo chmod -R 0777 "${GODDARD_BASE_PATH}"
+POST_TUNNELING_INFO_TO_SERVER
+eval jq -r '.' < "${NODE_JSON_RAW_PATH}"
+JQ_RETURN_CODE="${?}"
+
+if [[ "${JQ_RETURN_CODE}" == "0" ]]; then mv "/var/goddard/node.raw.json" "/var/goddard/node.json"; fi
+
+POST_BUILD_JSON_BUSY "Loading base image"
+docker load < "${GODDARD_BASE_PATH}/node.img.tar" || true
+POST_BUILD_JSON_BUSY "Downloading app list for node..."
+curl "http://hub.goddard.unicore.io/apps.json?uid=$(jq -r '.uid' < "${NODE_JSON_PATH}")" > "${APPS_JSON_RAW_PATH}"
+CURL_RET_CODE="${?}"
+
+if [[ "${CURL_RET_CODE}" != "0" ]]; then
+	POST_BUILD_JSON_ERROR "Parsing of app.json failed from hub server"
+	echo "The JSON parsing test failed"
+	echo "Server returned invalid JSON"
+	echo "The test was done on ${APPS_JSON_RAW_PATH}"
+	exit 1
 fi
+
+mv "${APPS_JSON_RAW_PATH}" "${APPS_JSON_PATH}"
+POST_BUILD_JSON_BUSY "Downloaded app list for node..."
+jq -r '.[]  | "\(.key) \(.domain) \(.port)"' < "${APPS_JSON_PATH}" > "${APPS_KEYS_TXT_PATH}"
+rm "${NGINX_CONFD_PATH}/*.conf" || true
+
+# do *NOT* quote the argument to docker kill
+# the container ids need to be whitespace delimited
+docker kill $(docker ps -q) || true
+
+while read TKEY TDOMAIN TPORT; do
+	POST_BUILD_JSON_BUSY "Downloading application ${TDOMAIN}"
+	echo "diff size: $(rsync -aPzri --progress "node@hub.goddard.unicore.io:${GODDARD_APPS_BASE_PATH}/${TKEY}/" "${GODDARD_APPS_BASE_PATH}/${TKEY}" | wc -l)"
+	POST_BUILD_JSON_BUSY "Building ${TDOMAIN}"
+	cd "${GODDARD_APPS_BASE_PATH}/${TKEY}" && docker build --tag="${TKEY}" --rm=true "."
+	POST_BUILD_JSON_BUSY "Stopping ${TKEY}"
+	RUNNING_CONTAINERS="$(docker ps)"
+	ID_TO_IMAGE=$(echo "${RUNNING_CONTAINERS}" | awk '{print $1, $2}')
+	CONTAINER=$(echo "${ID_TO_IMAGE}" | grep "${TKEY}" | cat)
+	
+	if [[ "${CONTAINER}" == "" ]]; then
+		echo "${TKEY} is not running!"
+	else
+		CONTAINER_ID=$(echo "${CONTAINER}" | awk '{print $1}')
+		docker kill "${CONTAINER_ID}"
+		echo "done!"
+	fi
+	
+	POST_BUILD_JSON_BUSY "Starting ${TDOMAIN}"
+	docker run --restart=always -p "${TPORT}:8080" -d "${TKEY}"
+	POST_BUILD_JSON_BUSY "Adding ${TDOMAIN} web server config"
+	NEW_VIRTUAL_HOST "${NGINX_CONFD_PATH}/${TDOMAIN}.conf" "${TDOMAIN}" "${TKEY}" "${TPORT}"
+done < "${APPS_KEYS_TXT_PATH}"
+
+cat "${GODDARD_BASE_PATH}/agent/templates/unknown.html" > "${GODDARD_BASE_PATH}/index.html"
+cat "${GODDARD_BASE_PATH}/agent/templates/nginx.static.conf" > "${NGINX_CONFD_PATH}/default.conf"
+
+service nginx reload || true
+
+POST_BUILD_JSON_DONE
+
+UNLINK_SETUP_LOCK
+
+exit 0
