@@ -26,7 +26,8 @@ do
 	echo "Running setup script"
 
 	# execute command and update status code for done
-	sh scripts/setup.sh
+	# sh scripts/setup.sh
+	./scripts/setup.sh
 
 	# get the code
 	ret_code=$?
