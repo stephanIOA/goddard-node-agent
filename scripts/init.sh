@@ -1,7 +1,7 @@
 #! /bin/sh
 
 ##
-# This script does the base setup for the node on startup. 
+# This script does the base setup for the node on startup.
 # Including:
 # -> Base Network Setup (Alias eth0:0)
 # -> Setup Base Cron Jobs
@@ -77,7 +77,7 @@ if [ ! -f /var/goddard/lock.cron ]
 
 	#echo new cron into cron file
 	echo "*/15 * * * * cd /var/goddard/agent && node index.js --action metrics --server hub.goddard.unicore.io" >> mycron
-	
+
 	#install new cron file
 	crontab mycron
 	rm mycron
@@ -95,7 +95,7 @@ if [ ! -f /var/goddard/lock.media.cron ]
 	crontab -l > mycron
 
 	#echo new cron into cron file
-	echo "* */6 * * * cd /var/goddard/agent && pkill -15 -f sync.sh || true && chmod a+x scripts/sync.sh && ./scripts/sync.sh" >> mycron
+	echo "0 */6 * * * cd /var/goddard/agent && pkill -15 -f sync.sh || true && chmod a+x scripts/sync.sh && ./scripts/sync.sh" >> mycron
 	echo "* */24 * * * cd /var/goddard/agent && pkill -15 -f update.sh || true && chmod a+x scripts/update.sh && ./scripts/update.sh" >> mycron
 
 	#install new cron file
@@ -125,7 +125,7 @@ do
 	# debug
 	echo "Perform a ping to 8.8.8.8 to check if the internet is active"
 
-	# do the actual ping	
+	# do the actual ping
 	ping -c 3 8.8.8.8 >/dev/null 2>&1
 	if [ $? -eq 0 ]
 		then
