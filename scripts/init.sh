@@ -22,15 +22,14 @@ mkdir -p /var/goddard
 mkdir -p /var/goddard/media
 
 # run only if cron is not locked yet
-if [ ! -f /var/goddard/lock.cron ]
-	then
+if [ ! -f /var/goddard/lock.cron ]; then
 
 	# overwrite the nginx default with our one
 	cat /var/goddard/agent/templates/default.html > /var/goddard/index.html
 	cat /var/goddard/agent/templates/nginx.conf > /etc/nginx/nginx.conf
 	cat /var/goddard/agent/templates/nginx.default.conf > /etc/nginx/sites-enabled/default
 
-	fi
+fi
 
 # restart nginx
 service nginx restart || true
@@ -58,65 +57,18 @@ ifup eth0:1
 # ensure upstart for boot is written
 cat scripts/boot.upstart.conf > /etc/init/goddardboot.conf
 
-##
-# Write out the cron jobs required for the system
-##
-
-# run only if cron is not locked yet
-if [ ! -f /var/goddard/lock.cron ]
-	then
-
-	#write out current crontab
-	crontab -l > mycron
-
-	#echo new cron into cron file
-	echo "*/60 * * * * cd /var/goddard/agent && chmod a+x scripts/logs.sh && ./scripts/logs.sh" >> mycron
-
-	#echo new cron into cron file
-	echo "*/1 * * * * cd /var/goddard/agent && node index.js --action metrics --save --server hub.goddard.unicore.io" >> mycron
-
-	#echo new cron into cron file
-	echo "*/15 * * * * cd /var/goddard/agent && node index.js --action metrics --server hub.goddard.unicore.io" >> mycron
-
-	#install new cron file
-	crontab mycron
-	rm mycron
-
-	# lock the cron
-	date > /var/goddard/lock.cron
-
-	fi
-
-# run only if cron is not locked yet
-if [ ! -f /var/goddard/lock.media.cron ]
-	then
-
-	#write out current crontab
-	crontab -l > mycron
-
-	#echo new cron into cron file
-	echo "0 * * * * cd /var/goddard/agent && pkill -15 -f sync.sh || true && chmod a+x scripts/sync.sh && ./scripts/sync.sh" >> mycron
-	echo "0 0 * * * cd /var/goddard/agent && pkill -15 -f update.sh || true && chmod a+x scripts/update.sh && ./scripts/update.sh" >> mycron
-
-	#install new cron file
-	crontab mycron
-	rm mycron
-
-	# lock the cron
-	date > /var/goddard/lock.media.cron
-
-	fi
+./scripts/set_cron.sh
 
 # ping router and only run if something is unconfigured
 ping -c 3 192.168.88.1 >/dev/null 2>&1
-if [ $? -eq 0 ]
-	then
 
-    	# run the configure script
-    	echo "RUNNING CONFIG SCRIPT:"
-    	node index.js --action configure --server http://hub.goddard.unicore.io
+if [ $? -eq 0 ]; then
 
-	fi
+	# run the configure script
+	echo "RUNNING CONFIG SCRIPT:"
+	node index.js --action configure --server http://hub.goddard.unicore.io
+
+fi
 
 # try and ping the google dns server after which it will try and provision
 while :
@@ -154,8 +106,7 @@ chmod a+x scripts/provision.sh
 service goddardboot start
 
 # create the tunnel if not present
-if [ -f /var/goddard/node.json ]
-then
+if [ -f /var/goddard/node.json ]; then
 
 	# get the details to write out
 	tunnel_server=$(cat /var/goddard/node.json | jq -r '.server')
