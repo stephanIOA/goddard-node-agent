@@ -27,7 +27,6 @@ do
 
 	# execute command and update status code for done
 	echo "setting executable setup.sh"
-	chmod +x scripts/setup.sh
 	./scripts/setup.sh
 
 	# get the code
