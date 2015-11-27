@@ -26,7 +26,7 @@ do
 	echo "Running setup script"
 
 	# execute command and update status code for done
-	# sh scripts/setup.sh
+	chmod +x scripts/setup.sh
 	./scripts/setup.sh
 
 	# get the code
