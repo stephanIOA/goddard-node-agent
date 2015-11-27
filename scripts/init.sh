@@ -57,6 +57,7 @@ ifup eth0:1
 # ensure upstart for boot is written
 cat scripts/boot.upstart.conf > /etc/init/goddardboot.conf
 
+chmod +x scripts/set_cron.sh
 ./scripts/set_cron.sh
 
 # ping router and only run if something is unconfigured
