@@ -52,7 +52,7 @@ if [ $count -gt 0 ]
 		sudo mkdir -p /var/goddard/
 
 		# global permissions as this is quite open
-		sudo chmod -R 0666 /var/goddard/
+		sudo chmod -R 0777 /var/goddard/
 
 		###
 		# need to send:

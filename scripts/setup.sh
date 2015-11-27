@@ -114,7 +114,7 @@ if [[ -f "${LOCK_FILE_PATH}" ]]; then exit 1; fi
 
 WRITE_SETUP_LOCK
 POST_BUILD_JSON_BUSY "Updating node.json with the latest details"
-sudo chmod -R 0666 "${GODDARD_BASE_PATH}"
+sudo chmod -R 0777 "${GODDARD_BASE_PATH}"
 POST_TUNNELING_INFO_TO_SERVER
 eval jq -r '.' < "${NODE_JSON_RAW_PATH}"
 JQ_RETURN_CODE="${?}"
