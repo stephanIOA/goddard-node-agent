@@ -4,12 +4,23 @@
 # Write out the cron jobs required for the system
 ##
 
-echo "*/60 * * * * cd /var/goddard/agent && chmod a+x scripts/logs.sh && ./scripts/logs.sh" > mycron
-echo "*/1 * * * * cd /var/goddard/agent && node index.js --action metrics --save --server hub.goddard.unicore.io" >> mycron
-echo "*/15 * * * * cd /var/goddard/agent && node index.js --action metrics --server hub.goddard.unicore.io" >> mycron
-echo "0 0 * * * cd /var/goddard/agent && pkill -15 -f update.sh || true && chmod a+x scripts/update.sh && ./scripts/update.sh" >> mycron
-# echo "0 * * * * cd /var/goddard/agent && pkill -15 -f sync.sh || true && chmod a+x scripts/sync.sh && ./scripts/sync.sh" >> mycron
-echo "0 * * * * cd /var/goddard/agent && ./scripts/sync_monitor.sh" >> mycron
+echo '# Pull the logs from the containers every 15 minute.' > mycron
+echo '*/15 * * * * cd /var/goddard/agent && chmod a+x scripts/logs.sh && ./scripts/logs.sh > /dev/null' >> mycron
+echo '' >> mycron
+echo '# Store the metrics every minute.' >> mycron
+echo '* * * * * cd /var/goddard/agent && /usr/bin/node index.js --action metrics --save --server hub.goddard.unicore.io > /dev/null' >> mycron
+echo '' >> mycron
+echo '# Every 15 minutes, send the logs to the server, which is also our regular check in.' >> mycron
+echo '*/15 * * * * cd /var/goddard/agent && /usr/bin/node index.js --action metrics --server hub.goddard.unicore.io > /dev/null' >> mycron
+echo '' >> mycron
+echo '# Once a day run the Node Agent source code update script, killing it first in case it is still running.' >> mycron
+echo '# Run at 1pm, maximising the chance of solar power meaning we are running.' >> mycron
+echo '00 13 * * * UPDATE_PID=$(pgrep update.sh) ; if [ ! -z "$UPDATE_PID" ] ; then pkill -P $UPDATE_PID ; fi' >> mycron
+echo '05 13 * * * cd /var/goddard/agent; chmod a+x scripts/update.sh && ./scripts/update.sh >> /tmp/update_out.log' >> mycron
+echo '' >> mycron
+echo '# Every 3 hours run media sync script, killing it first in case it is still running.' >> mycron
+echo '00 */3 * * * SYNC_PID=$(pgrep sync.sh) ; if [ ! -z "$SYNC_PID" ] ; then pkill -P $SYNC_PID ; fi' >> mycron
+echo '05 */3 * * * cd /var/goddard/agent; chmod a+x scripts/sync.sh && ./scripts/sync.sh >> /tmp/sync_out.log' >> mycron
 
 crontab mycron
 rm mycron
