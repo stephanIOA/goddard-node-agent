@@ -148,7 +148,7 @@ docker kill $(docker ps -q) || true
 
 while read TKEY TDOMAIN TPORT; do
 	POST_BUILD_JSON_BUSY "Downloading application ${TDOMAIN}"
-	echo "diff size: $(rsync -aPzri --progress "node@${HUB_GODDARD_UNICORE}:${GODDARD_APPS_BASE_PATH}/${TKEY}/" "${GODDARD_APPS_BASE_PATH}/${TKEY}" | wc -l)"
+	echo "diff size: $(rsync -aPzri --no-perms --progress "node@${HUB_GODDARD_UNICORE}:${GODDARD_APPS_BASE_PATH}/${TKEY}/" "${GODDARD_APPS_BASE_PATH}/${TKEY}" | wc -l)"
 	POST_BUILD_JSON_BUSY "Building ${TDOMAIN}"
 	cd "${GODDARD_APPS_BASE_PATH}/${TKEY}" && docker build --tag="${TKEY}" --rm=true "."
 	POST_BUILD_JSON_BUSY "Stopping ${TKEY}"
