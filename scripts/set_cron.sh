@@ -18,9 +18,9 @@ echo '# Run at 1pm, maximising the chance of solar power meaning we are running.
 echo '00 13 * * * UPDATE_PID=$(pgrep update.sh) ; if [ ! -z "$UPDATE_PID" ] ; then pkill -P $UPDATE_PID ; fi' >> mycron
 echo '05 13 * * * cd /var/goddard/agent; chmod a+x scripts/update.sh && ./scripts/update.sh >> /tmp/update_out.log' >> mycron
 echo '' >> mycron
-echo '# Every 3 hours run media sync script, killing it first in case it is still running.' >> mycron
-echo '00 */3 * * * SYNC_PID=$(pgrep sync.sh) ; if [ ! -z "$SYNC_PID" ] ; then pkill -P $SYNC_PID ; fi' >> mycron
-echo '05 */3 * * * cd /var/goddard/agent; chmod a+x scripts/sync.sh && ./scripts/sync.sh >> /tmp/sync_out.log' >> mycron
+echo '# Every hour run media sync script, killing it first in case it is still running.' >> mycron
+echo '00 * * * * SYNC_PID=$(pgrep sync.sh) ; if [ ! -z "$SYNC_PID" ] ; then pkill -P $SYNC_PID ; fi' >> mycron
+echo '05 * * * * date >> /tmp/sync_out.log; cd /var/goddard/agent; chmod a+x scripts/sync.sh && ./scripts/sync.sh >> /tmp/sync_out.log' >> mycron
 
 crontab mycron
 rm mycron
