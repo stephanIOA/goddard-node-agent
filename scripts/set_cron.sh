@@ -20,7 +20,7 @@ echo '05 13 * * * cd /var/goddard/agent; chmod a+x scripts/update.sh && ./script
 echo '' >> mycron
 echo '# Every hour run media sync script, killing it first in case it is still running.' >> mycron
 echo '00 * * * * SYNC_PID=$(pgrep sync.sh) ; if [ ! -z "$SYNC_PID" ] ; then pkill -P $SYNC_PID ; fi' >> mycron
-echo '05 * * * * date >> /tmp/sync_out.log; cd /var/goddard/agent; chmod a+x scripts/sync.sh && ./scripts/sync.sh >> /tmp/sync_out.log' >> mycron
+echo '05 * * * * date >> /tmp/sync_out.log; cd /var/goddard/agent; chmod a+x scripts/sync.sh && ./scripts/sync.sh >> /tmp/sync_out.log 2>&1' >> mycron
 
 crontab mycron
 rm mycron
