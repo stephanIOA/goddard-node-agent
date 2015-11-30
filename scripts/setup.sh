@@ -100,6 +100,16 @@ POST_BUILD_JSON_DONE() {
 	POST_TO_SERVER
 }
 
+NEW_CONTAINER() {
+	local TKEY="${1}"
+	local TDOMAIN="${2}"
+	local TPORT="${3}"
+	POST_BUILD_JSON_BUSY "Starting ${TDOMAIN}"
+	docker run --restart=always -p "${TPORT}:8080" -d "${TKEY}"
+	POST_BUILD_JSON_BUSY "Adding ${TDOMAIN} web server config"
+	NEW_VIRTUAL_HOST "${NGINX_CONFD_PATH}/${TDOMAIN}.conf" "${TDOMAIN}" "${TKEY}" "${TPORT}"
+}
+
 WRITE_SETUP_LOCK() {
 	date > "${LOCK_FILE_PATH}"
 }
@@ -147,27 +157,46 @@ rm "${NGINX_CONFD_PATH}/*.conf" || true
 docker kill $(docker ps -q) || true
 
 while read TKEY TDOMAIN TPORT; do
+	
 	POST_BUILD_JSON_BUSY "Downloading application ${TDOMAIN}"
-	echo "diff size: $(rsync -aPzri --no-perms --progress "node@${HUB_GODDARD_UNICORE}:${GODDARD_APPS_BASE_PATH}/${TKEY}/" "${GODDARD_APPS_BASE_PATH}/${TKEY}" | wc -l)"
-	POST_BUILD_JSON_BUSY "Building ${TDOMAIN}"
-	cd "${GODDARD_APPS_BASE_PATH}/${TKEY}" && docker build --tag="${TKEY}" --rm=true "."
-	POST_BUILD_JSON_BUSY "Stopping ${TKEY}"
+	DIFF=$(rsync -aPzri --no-perms --progress \
+		"node@${HUB_GODDARD_UNICORE}:${GODDARD_APPS_BASE_PATH}/${TKEY}/" \
+		"${GODDARD_APPS_BASE_PATH}/${TKEY}" | wc -l)
+
 	RUNNING_CONTAINERS="$(docker ps)"
 	ID_TO_IMAGE=$(echo "${RUNNING_CONTAINERS}" | awk '{print $1, $2}')
 	CONTAINER=$(echo "${ID_TO_IMAGE}" | grep "${TKEY}" | cat)
 	
-	if [[ "${CONTAINER}" == "" ]]; then
-		echo "${TKEY} is not running!"
-	else
+	if [[ "${CONTAINER}" != "" && "${DIFF}" != "0" ]]; then
+		# container IS running AND diff IS detected
+		POST_BUILD_JSON_BUSY "Building ${TDOMAIN}"
+		cd "${GODDARD_APPS_BASE_PATH}/${TKEY}" && docker build --tag="${TKEY}" --rm=true "."
+		POST_BUILD_JSON_BUSY "Stopping ${TKEY}"
 		CONTAINER_ID=$(echo "${CONTAINER}" | awk '{print $1}')
 		docker kill "${CONTAINER_ID}"
-		echo "done!"
+		NEW_CONTAINER "${TKEY}" "${TDOMAIN}" "${TPORT}"
+		echo "rebuilt image for ${TKEY} and cycled the container!"
+	elif [[ "${CONTAINER}" == "" && "${DIFF}" != "0" ]]; then
+		# container ISNT running AND diff IS detected
+		POST_BUILD_JSON_BUSY "Building ${TDOMAIN}"
+		cd "${GODDARD_APPS_BASE_PATH}/${TKEY}" && docker build --tag="${TKEY}" --rm=true "."
+		echo "${TKEY} is not running!"
+		NEW_CONTAINER "${TKEY}" "${TDOMAIN}" "${TPORT}"
+	elif [[ "${CONTAINER}" == "" && "${DIFF}" == "0" ]]; then
+		# container ISNT running AND diff ISNT detected
+		# maybe we ought to build the image here
+		# just in case it hasn't been built yet?
+		# couldn't hurt...
+		POST_BUILD_JSON_BUSY "Building ${TDOMAIN}"
+		cd "${GODDARD_APPS_BASE_PATH}/${TKEY}" && docker build --tag="${TKEY}" --rm=true "."
+		echo "${TKEY} is not running!"
+		NEW_CONTAINER "${TKEY}" "${TDOMAIN}" "${TPORT}"
+	else
+		# container IS running AND diff ISNT detected
+		# 
+		# (nothing to do here...)
 	fi
 	
-	POST_BUILD_JSON_BUSY "Starting ${TDOMAIN}"
-	docker run --restart=always -p "${TPORT}:8080" -d "${TKEY}"
-	POST_BUILD_JSON_BUSY "Adding ${TDOMAIN} web server config"
-	NEW_VIRTUAL_HOST "${NGINX_CONFD_PATH}/${TDOMAIN}.conf" "${TDOMAIN}" "${TKEY}" "${TPORT}"
 done < "${APPS_KEYS_TXT_PATH}"
 
 cat "${GODDARD_BASE_PATH}/agent/templates/unknown.html" > "${GODDARD_BASE_PATH}/index.html"
