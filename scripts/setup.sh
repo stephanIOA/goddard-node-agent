@@ -100,6 +100,60 @@ POST_BUILD_JSON_DONE() {
 	POST_TO_SERVER
 }
 
+STOP_AND_REMOVE_UNNEEDED_CONTAINERS() {
+	# perform a reverse grep with multiple patterns to determine
+	# which containers should NOT be running based on app keys text file
+	local PATTERN="-v"
+	declare RUNNING_CONTAINERS
+	RUNNING_CONTAINERS="$(docker ps)"
+	declare IDS_TO_IMAGES
+	IDS_TO_IMAGES=$(echo "${RUNNING_CONTAINERS}" | awk '{print $1, $2}')
+	while read TKEY TDOMAIN TPORT; do PATTERN="${PATTERN} -e ${TKEY}"; done < "${APPS_KEYS_TXT_PATH}"
+	declare CONTAINERS
+	CONTAINERS=$(echo "${IDS_TO_IMAGES}" | grep ${PATTERN} | cat)
+	declare CONTAINER_IDS
+	CONTAINER_IDS=$(echo "${CONTAINERS}" | awk '{print $1}')
+	
+	for id in ${CONTAINER_IDS}; do
+		
+		# trim whitespace
+		id=${id//[[:blank:]]/}
+
+		echo "showing id from container_ids " $id
+
+		if [[ $id != "CONTAINER" ]]; then
+			# stop any running containers that are not specified in apps.json
+			# and remove them from docker daemon to avoid restarting at boot time
+			docker stop --time=30 $id && docker rm --volumes=true $id
+		fi
+	done
+}
+
+REMOVE_STALE_CONTAINERS() {
+	docker ps -a | grep 'Exited .* days ago' | awk '{print $1}' | xargs --no-run-if-empty docker rm --volumes=true
+	docker ps -a | grep 'Exited .* weeks ago' | awk '{print $1}' | xargs --no-run-if-empty docker rm --volumes=true
+	docker ps -a | grep 'Exited .* months ago' | awk '{print $1}' | xargs --no-run-if-empty docker rm --volumes=true
+	docker ps -a | grep 'Exited .* years ago' | awk '{print $1}' | xargs --no-run-if-empty docker rm --volumes=true
+}
+
+REMOVE_UNNEEDED_VIRTUAL_HOSTS() {
+	pattern="/etc/nginx/conf.d -maxdepth 1 -type f ! -name 'default.conf'"
+	while read TKEY TDOMAIN TPORT; do
+		pattern="$pattern ! -name '${TDOMAIN}.conf'"
+	done < /var/goddard/apps.keys.txt
+	rm $(echo $pattern | xargs find) || true
+}
+
+NEW_CONTAINER() {
+	local TKEY="${1}"
+	local TDOMAIN="${2}"
+	local TPORT="${3}"
+	POST_BUILD_JSON_BUSY "Starting ${TDOMAIN}"
+	docker run --restart=always -p "${TPORT}:8080" -d "${TKEY}"
+	POST_BUILD_JSON_BUSY "Adding ${TDOMAIN} web server config"
+	NEW_VIRTUAL_HOST "${NGINX_CONFD_PATH}/${TDOMAIN}.conf" "${TDOMAIN}" "${TKEY}" "${TPORT}"
+}
+
 WRITE_SETUP_LOCK() {
 	date > "${LOCK_FILE_PATH}"
 }
@@ -140,38 +194,62 @@ fi
 mv "${APPS_JSON_RAW_PATH}" "${APPS_JSON_PATH}"
 POST_BUILD_JSON_BUSY "Downloaded app list for node..."
 jq -r '.[]  | "\(.key) \(.domain) \(.port)"' < "${APPS_JSON_PATH}" > "${APPS_KEYS_TXT_PATH}"
-rm "${NGINX_CONFD_PATH}/*.conf" || true
 
-# do *NOT* quote the argument to docker kill
-# the container ids need to be whitespace delimited
-docker kill $(docker ps -q) || true
+STOP_AND_REMOVE_UNNEEDED_CONTAINERS
 
 while read TKEY TDOMAIN TPORT; do
+	
 	POST_BUILD_JSON_BUSY "Downloading application ${TDOMAIN}"
-	echo "diff size: $(rsync -aPzri --progress "node@${HUB_GODDARD_UNICORE}:${GODDARD_APPS_BASE_PATH}/${TKEY}/" "${GODDARD_APPS_BASE_PATH}/${TKEY}" | wc -l)"
-	POST_BUILD_JSON_BUSY "Building ${TDOMAIN}"
-	cd "${GODDARD_APPS_BASE_PATH}/${TKEY}" && docker build --tag="${TKEY}" --rm=true "."
-	POST_BUILD_JSON_BUSY "Stopping ${TKEY}"
+	DIFF=$(rsync -azri --no-perms \
+		"node@${HUB_GODDARD_UNICORE}:${GODDARD_APPS_BASE_PATH}/${TKEY}/" \
+		"${GODDARD_APPS_BASE_PATH}/${TKEY}" | wc -l)
+
+	echo "diff value from rsync $DIFF"
+
 	RUNNING_CONTAINERS="$(docker ps)"
 	ID_TO_IMAGE=$(echo "${RUNNING_CONTAINERS}" | awk '{print $1, $2}')
 	CONTAINER=$(echo "${ID_TO_IMAGE}" | grep "${TKEY}" | cat)
 	
-	if [[ "${CONTAINER}" == "" ]]; then
-		echo "${TKEY} is not running!"
-	else
+	echo $TKEY
+
+	if [[ "${CONTAINER}" != "" && "${DIFF}" -gt 0 ]]; then
+		echo "container IS running AND diff IS detected"
+		POST_BUILD_JSON_BUSY "Building ${TDOMAIN}"
+		cd "${GODDARD_APPS_BASE_PATH}/${TKEY}" && docker build --tag="${TKEY}" --rm=true "."
+		POST_BUILD_JSON_BUSY "Stopping ${TKEY}"
 		CONTAINER_ID=$(echo "${CONTAINER}" | awk '{print $1}')
-		docker kill "${CONTAINER_ID}"
-		echo "done!"
+		docker rm --volumes=true $(docker kill "${CONTAINER_ID}")
+		NEW_CONTAINER "${TKEY}" "${TDOMAIN}" "${TPORT}"
+		echo "rebuilt image for ${TKEY} and cycled the container!"
+	elif [[ "${CONTAINER}" == "" && "${DIFF}" -gt 0 ]]; then
+		echo "container ISNT running AND diff IS detected"
+		POST_BUILD_JSON_BUSY "Building ${TDOMAIN}"
+		cd "${GODDARD_APPS_BASE_PATH}/${TKEY}" && docker build --tag="${TKEY}" --rm=true "."
+		echo "${TKEY} is not running!"
+		NEW_CONTAINER "${TKEY}" "${TDOMAIN}" "${TPORT}"
+	elif [[ "${CONTAINER}" == "" && "${DIFF}" -eq 0 ]]; then
+		echo "container ISNT running AND diff ISNT detected"
+		# maybe we ought to build the image here
+		# just in case it hasn't been built yet?
+		# couldn't hurt...
+		POST_BUILD_JSON_BUSY "Building ${TDOMAIN}"
+		cd "${GODDARD_APPS_BASE_PATH}/${TKEY}" && docker build --tag="${TKEY}" --rm=true "."
+		echo "${TKEY} is not running!"
+		NEW_CONTAINER "${TKEY}" "${TDOMAIN}" "${TPORT}"
+	else
+		echo "container IS running AND diff ISNT detected"
+		# 
+		# (nothing to do here...)
+		true
 	fi
-	
-	POST_BUILD_JSON_BUSY "Starting ${TDOMAIN}"
-	docker run --restart=always -p "${TPORT}:8080" -d "${TKEY}"
-	POST_BUILD_JSON_BUSY "Adding ${TDOMAIN} web server config"
-	NEW_VIRTUAL_HOST "${NGINX_CONFD_PATH}/${TDOMAIN}.conf" "${TDOMAIN}" "${TKEY}" "${TPORT}"
 done < "${APPS_KEYS_TXT_PATH}"
 
 cat "${GODDARD_BASE_PATH}/agent/templates/unknown.html" > "${GODDARD_BASE_PATH}/index.html"
 cat "${GODDARD_BASE_PATH}/agent/templates/nginx.static.conf" > "${NGINX_CONFD_PATH}/default.conf"
+
+REMOVE_STALE_CONTAINERS
+
+REMOVE_UNNEEDED_VIRTUAL_HOSTS
 
 service nginx reload || true
 
