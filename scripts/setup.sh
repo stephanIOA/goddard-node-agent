@@ -136,6 +136,14 @@ REMOVE_STALE_CONTAINERS() {
 	docker ps -a | grep 'Exited .* years ago' | awk '{print $1}' | xargs --no-run-if-empty docker rm --volumes=true
 }
 
+REMOVE_UNNEEDED_VIRTUAL_HOSTS() {
+	pattern="/etc/nginx/conf.d -maxdepth 1 -type f ! -name 'default.conf'"
+	while read TKEY TDOMAIN TPORT; do
+		pattern="$pattern ! -name '${TDOMAIN}.conf'"
+	done < /var/goddard/apps.keys.txt
+	rm $(echo $pattern | xargs find) || true
+}
+
 NEW_CONTAINER() {
 	local TKEY="${1}"
 	local TDOMAIN="${2}"
@@ -186,23 +194,26 @@ fi
 mv "${APPS_JSON_RAW_PATH}" "${APPS_JSON_PATH}"
 POST_BUILD_JSON_BUSY "Downloaded app list for node..."
 jq -r '.[]  | "\(.key) \(.domain) \(.port)"' < "${APPS_JSON_PATH}" > "${APPS_KEYS_TXT_PATH}"
-rm "${NGINX_CONFD_PATH}/*.conf" || true
 
 STOP_AND_REMOVE_UNNEEDED_CONTAINERS
 
 while read TKEY TDOMAIN TPORT; do
 	
 	POST_BUILD_JSON_BUSY "Downloading application ${TDOMAIN}"
-	DIFF=$(rsync -aPzri --no-perms --progress \
+	DIFF=$(rsync -azri --no-perms \
 		"node@${HUB_GODDARD_UNICORE}:${GODDARD_APPS_BASE_PATH}/${TKEY}/" \
 		"${GODDARD_APPS_BASE_PATH}/${TKEY}" | wc -l)
+
+	echo "diff value from rsync $DIFF"
 
 	RUNNING_CONTAINERS="$(docker ps)"
 	ID_TO_IMAGE=$(echo "${RUNNING_CONTAINERS}" | awk '{print $1, $2}')
 	CONTAINER=$(echo "${ID_TO_IMAGE}" | grep "${TKEY}" | cat)
 	
-	if [[ "${CONTAINER}" != "" && "${DIFF}" != "0" ]]; then
-		# container IS running AND diff IS detected
+	echo $TKEY
+
+	if [[ "${CONTAINER}" != "" && "${DIFF}" -gt 0 ]]; then
+		echo "container IS running AND diff IS detected"
 		POST_BUILD_JSON_BUSY "Building ${TDOMAIN}"
 		cd "${GODDARD_APPS_BASE_PATH}/${TKEY}" && docker build --tag="${TKEY}" --rm=true "."
 		POST_BUILD_JSON_BUSY "Stopping ${TKEY}"
@@ -210,14 +221,14 @@ while read TKEY TDOMAIN TPORT; do
 		docker rm --volumes=true $(docker kill "${CONTAINER_ID}")
 		NEW_CONTAINER "${TKEY}" "${TDOMAIN}" "${TPORT}"
 		echo "rebuilt image for ${TKEY} and cycled the container!"
-	elif [[ "${CONTAINER}" == "" && "${DIFF}" != "0" ]]; then
-		# container ISNT running AND diff IS detected
+	elif [[ "${CONTAINER}" == "" && "${DIFF}" -gt 0 ]]; then
+		echo "container ISNT running AND diff IS detected"
 		POST_BUILD_JSON_BUSY "Building ${TDOMAIN}"
 		cd "${GODDARD_APPS_BASE_PATH}/${TKEY}" && docker build --tag="${TKEY}" --rm=true "."
 		echo "${TKEY} is not running!"
 		NEW_CONTAINER "${TKEY}" "${TDOMAIN}" "${TPORT}"
-	elif [[ "${CONTAINER}" == "" && "${DIFF}" == "0" ]]; then
-		# container ISNT running AND diff ISNT detected
+	elif [[ "${CONTAINER}" == "" && "${DIFF}" -eq 0 ]]; then
+		echo "container ISNT running AND diff ISNT detected"
 		# maybe we ought to build the image here
 		# just in case it hasn't been built yet?
 		# couldn't hurt...
@@ -226,7 +237,7 @@ while read TKEY TDOMAIN TPORT; do
 		echo "${TKEY} is not running!"
 		NEW_CONTAINER "${TKEY}" "${TDOMAIN}" "${TPORT}"
 	else
-		# container IS running AND diff ISNT detected
+		echo "container IS running AND diff ISNT detected"
 		# 
 		# (nothing to do here...)
 		true
@@ -237,6 +248,8 @@ cat "${GODDARD_BASE_PATH}/agent/templates/unknown.html" > "${GODDARD_BASE_PATH}/
 cat "${GODDARD_BASE_PATH}/agent/templates/nginx.static.conf" > "${NGINX_CONFD_PATH}/default.conf"
 
 REMOVE_STALE_CONTAINERS
+
+REMOVE_UNNEEDED_VIRTUAL_HOSTS
 
 service nginx reload || true
 
