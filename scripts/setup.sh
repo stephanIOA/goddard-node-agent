@@ -100,7 +100,7 @@ POST_BUILD_JSON_DONE() {
 	POST_TO_SERVER
 }
 
-STOP_UNNEEDED_CONTAINERS() {
+STOP_AND_REMOVE_UNNEEDED_CONTAINERS() {
 	# perform a reverse grep with multiple patterns to determine
 	# which containers should NOT be running based on app keys text file
 	local PATTERN="-v"
@@ -127,6 +127,13 @@ STOP_UNNEEDED_CONTAINERS() {
 			docker stop --time=30 $id && docker rm --volumes=true $id
 		fi
 	done
+}
+
+REMOVE_STALE_CONTAINERS() {
+	docker ps -a | grep 'Exited .* days ago' | awk '{print $1}' | xargs --no-run-if-empty docker rm --volumes=true
+	docker ps -a | grep 'Exited .* weeks ago' | awk '{print $1}' | xargs --no-run-if-empty docker rm --volumes=true
+	docker ps -a | grep 'Exited .* months ago' | awk '{print $1}' | xargs --no-run-if-empty docker rm --volumes=true
+	docker ps -a | grep 'Exited .* years ago' | awk '{print $1}' | xargs --no-run-if-empty docker rm --volumes=true
 }
 
 NEW_CONTAINER() {
@@ -181,7 +188,7 @@ POST_BUILD_JSON_BUSY "Downloaded app list for node..."
 jq -r '.[]  | "\(.key) \(.domain) \(.port)"' < "${APPS_JSON_PATH}" > "${APPS_KEYS_TXT_PATH}"
 rm "${NGINX_CONFD_PATH}/*.conf" || true
 
-STOP_UNNEEDED_CONTAINERS
+STOP_AND_REMOVE_UNNEEDED_CONTAINERS
 
 while read TKEY TDOMAIN TPORT; do
 	
@@ -228,6 +235,8 @@ done < "${APPS_KEYS_TXT_PATH}"
 
 cat "${GODDARD_BASE_PATH}/agent/templates/unknown.html" > "${GODDARD_BASE_PATH}/index.html"
 cat "${GODDARD_BASE_PATH}/agent/templates/nginx.static.conf" > "${NGINX_CONFD_PATH}/default.conf"
+
+REMOVE_STALE_CONTAINERS
 
 service nginx reload || true
 
