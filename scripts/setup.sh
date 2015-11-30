@@ -100,6 +100,27 @@ POST_BUILD_JSON_DONE() {
 	POST_TO_SERVER
 }
 
+KILL_UNNEEDED_CONTAINERS() {
+	# perform a reverse grep with multiple patterns to determine
+	# which containers should NOT be running based on app keys text file
+	local PATTERN="-v"
+	declare RUNNING_CONTAINERS
+	RUNNING_CONTAINERS="$(docker ps)"
+	declare IDS_TO_IMAGES
+	IDS_TO_IMAGES=$(echo "${RUNNING_CONTAINERS}" | awk '{print $1, $2}')
+	while read TKEY TDOMAIN TPORT; do
+		PATTERN="${PATTERN} -e ${TKEY}"
+	done < "${APPS_KEYS_TXT_PATH}"
+	declare CONTAINERS
+	CONTAINERS=$(echo "${IDS_TO_IMAGES}" | grep ${PATTERN} | cat)
+	declare CONTAINER_IDS
+	CONTAINER_IDS=$(echo "${CONTAINERS}" | awk '{print $1}')
+	# container_ids is going to contain the string "CONTAINER"
+	# so running docker kill will inevitably produce some
+	# alarming output, but it wont break anything...
+	docker kill ${CONTAINER_IDS} || true
+}
+
 NEW_CONTAINER() {
 	local TKEY="${1}"
 	local TDOMAIN="${2}"
@@ -152,9 +173,7 @@ POST_BUILD_JSON_BUSY "Downloaded app list for node..."
 jq -r '.[]  | "\(.key) \(.domain) \(.port)"' < "${APPS_JSON_PATH}" > "${APPS_KEYS_TXT_PATH}"
 rm "${NGINX_CONFD_PATH}/*.conf" || true
 
-# do *NOT* quote the argument to docker kill
-# the container ids need to be whitespace delimited
-docker kill $(docker ps -q) || true
+KILL_UNNEEDED_CONTAINERS
 
 while read TKEY TDOMAIN TPORT; do
 	
@@ -195,8 +214,8 @@ while read TKEY TDOMAIN TPORT; do
 		# container IS running AND diff ISNT detected
 		# 
 		# (nothing to do here...)
+		true
 	fi
-	
 done < "${APPS_KEYS_TXT_PATH}"
 
 cat "${GODDARD_BASE_PATH}/agent/templates/unknown.html" > "${GODDARD_BASE_PATH}/index.html"
