@@ -113,10 +113,20 @@ STOP_UNNEEDED_CONTAINERS() {
 	CONTAINERS=$(echo "${IDS_TO_IMAGES}" | grep ${PATTERN} | cat)
 	declare CONTAINER_IDS
 	CONTAINER_IDS=$(echo "${CONTAINERS}" | awk '{print $1}')
-	# container_ids is going to contain the string "CONTAINER"
-	# so running docker kill will inevitably produce some
-	# alarming output, but it wont break anything...
-	docker stop --time=30 ${CONTAINER_IDS} || true
+	
+	for id in ${CONTAINER_IDS}; do
+		
+		# trim whitespace
+		id=${id//[[:blank:]]/}
+
+		echo "showing id from container_ids " $id
+
+		if [[ $id != "CONTAINER" ]]; then
+			# stop any running containers that are not specified in apps.json
+			# and remove them from docker daemon to avoid restarting at boot time
+			docker stop --time=30 $id && docker rm --volumes=true $id
+		fi
+	done
 }
 
 NEW_CONTAINER() {
@@ -124,7 +134,7 @@ NEW_CONTAINER() {
 	local TDOMAIN="${2}"
 	local TPORT="${3}"
 	POST_BUILD_JSON_BUSY "Starting ${TDOMAIN}"
-	docker run --restart=unless-stopped -p "${TPORT}:8080" -d "${TKEY}"
+	docker run --restart=always -p "${TPORT}:8080" -d "${TKEY}"
 	POST_BUILD_JSON_BUSY "Adding ${TDOMAIN} web server config"
 	NEW_VIRTUAL_HOST "${NGINX_CONFD_PATH}/${TDOMAIN}.conf" "${TDOMAIN}" "${TKEY}" "${TPORT}"
 }
@@ -190,7 +200,7 @@ while read TKEY TDOMAIN TPORT; do
 		cd "${GODDARD_APPS_BASE_PATH}/${TKEY}" && docker build --tag="${TKEY}" --rm=true "."
 		POST_BUILD_JSON_BUSY "Stopping ${TKEY}"
 		CONTAINER_ID=$(echo "${CONTAINER}" | awk '{print $1}')
-		docker kill "${CONTAINER_ID}"
+		docker rm --volumes=true $(docker kill "${CONTAINER_ID}")
 		NEW_CONTAINER "${TKEY}" "${TDOMAIN}" "${TPORT}"
 		echo "rebuilt image for ${TKEY} and cycled the container!"
 	elif [[ "${CONTAINER}" == "" && "${DIFF}" != "0" ]]; then
