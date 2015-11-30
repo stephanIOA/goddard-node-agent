@@ -124,7 +124,7 @@ NEW_CONTAINER() {
 	local TDOMAIN="${2}"
 	local TPORT="${3}"
 	POST_BUILD_JSON_BUSY "Starting ${TDOMAIN}"
-	docker run --restart=always -p "${TPORT}:8080" -d "${TKEY}"
+	docker run --restart=unless-stopped -p "${TPORT}:8080" -d "${TKEY}"
 	POST_BUILD_JSON_BUSY "Adding ${TDOMAIN} web server config"
 	NEW_VIRTUAL_HOST "${NGINX_CONFD_PATH}/${TDOMAIN}.conf" "${TDOMAIN}" "${TKEY}" "${TPORT}"
 }
