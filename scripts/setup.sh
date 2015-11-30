@@ -100,7 +100,7 @@ POST_BUILD_JSON_DONE() {
 	POST_TO_SERVER
 }
 
-KILL_UNNEEDED_CONTAINERS() {
+STOP_UNNEEDED_CONTAINERS() {
 	# perform a reverse grep with multiple patterns to determine
 	# which containers should NOT be running based on app keys text file
 	local PATTERN="-v"
@@ -116,7 +116,7 @@ KILL_UNNEEDED_CONTAINERS() {
 	# container_ids is going to contain the string "CONTAINER"
 	# so running docker kill will inevitably produce some
 	# alarming output, but it wont break anything...
-	docker kill ${CONTAINER_IDS} || true
+	docker stop --time=30 ${CONTAINER_IDS} || true
 }
 
 NEW_CONTAINER() {
@@ -171,7 +171,7 @@ POST_BUILD_JSON_BUSY "Downloaded app list for node..."
 jq -r '.[]  | "\(.key) \(.domain) \(.port)"' < "${APPS_JSON_PATH}" > "${APPS_KEYS_TXT_PATH}"
 rm "${NGINX_CONFD_PATH}/*.conf" || true
 
-KILL_UNNEEDED_CONTAINERS
+STOP_UNNEEDED_CONTAINERS
 
 while read TKEY TDOMAIN TPORT; do
 	
