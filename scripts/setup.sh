@@ -108,9 +108,7 @@ KILL_UNNEEDED_CONTAINERS() {
 	RUNNING_CONTAINERS="$(docker ps)"
 	declare IDS_TO_IMAGES
 	IDS_TO_IMAGES=$(echo "${RUNNING_CONTAINERS}" | awk '{print $1, $2}')
-	while read TKEY TDOMAIN TPORT; do
-		PATTERN="${PATTERN} -e ${TKEY}"
-	done < "${APPS_KEYS_TXT_PATH}"
+	while read TKEY TDOMAIN TPORT; do PATTERN="${PATTERN} -e ${TKEY}"; done < "${APPS_KEYS_TXT_PATH}"
 	declare CONTAINERS
 	CONTAINERS=$(echo "${IDS_TO_IMAGES}" | grep ${PATTERN} | cat)
 	declare CONTAINER_IDS
