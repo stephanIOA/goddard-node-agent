@@ -155,11 +155,11 @@ NEW_CONTAINER() {
 }
 
 WRITE_SETUP_LOCK() {
-	date > "${LOCK_FILE_PATH}"
+	date > /var/goddard/setup.lock
 }
 
 UNLINK_SETUP_LOCK() {
-	rm "${LOCK_FILE_PATH}" || true
+	rm /var/goddard/setup.lock || true
 }
 
 sudo mkdir -p "${GODDARD_BASE_PATH}"
