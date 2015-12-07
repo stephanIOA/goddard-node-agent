@@ -238,8 +238,7 @@ while read TKEY TDOMAIN TPORT; do
 		NEW_CONTAINER "${TKEY}" "${TDOMAIN}" "${TPORT}"
 	else
 		echo "container IS running AND diff ISNT detected"
-		# 
-		# (nothing to do here...)
+		NEW_VIRTUAL_HOST "${NGINX_CONFD_PATH}/${TDOMAIN}.conf" "${TDOMAIN}" "${TKEY}" "${TPORT}"
 		true
 	fi
 done < "${APPS_KEYS_TXT_PATH}"
