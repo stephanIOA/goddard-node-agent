@@ -24,6 +24,9 @@ do
 
 	# debug
 	echo "Running setup script"
+	
+	# mark as executable (because something might have changed that...)
+	chmod a+x scripts/setup.sh	
 
 	# execute command and update status code for done
 	./scripts/setup.sh
