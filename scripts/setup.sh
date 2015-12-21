@@ -141,7 +141,7 @@ REMOVE_UNNEEDED_VIRTUAL_HOSTS() {
 	while read TKEY TDOMAIN TPORT; do
 		pattern="$pattern ! -name '${TDOMAIN}.conf'"
 	done < /var/goddard/apps.keys.txt
-	$(echo $pattern | xargs find) | xargs -r rm
+	$(echo $pattern | xargs find) | xargs --no-run-if-empty rm
 }
 
 NEW_CONTAINER() {
